@@ -1,989 +1,822 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Lola’s Pen & Quill — Invoices</title>
-<meta name="description" content="Lola’s Pen & Quill — beautiful, Apple-style invoices. Add items fast, edit inline, save in a sidebar, and export to PDF/PNG." />
-<meta name="color-scheme" content="light dark" />
-<style id="base-css">
-/* =========================
-   Lola’s Pen & Quill — Single-file App
-   Author: ChatGPT (GPT-5 Thinking)
-   Notes:
-   - No frameworks. All vanilla.
-   - LocalStorage for persistence.
-   - Print CSS gives crisp PDFs.
-   - PNG export uses SVG foreignObject capture with inline CSS.
-   ========================= */
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Lola's Pen & Quill — Invoices</title>
+  <meta name="description" content="Lola's Pen & Quill — Apple-style invoice maker with templates, inline editing, sidebar archive, print to PDF, and PNG export. Single-file, GitHub Pages ready." />
+  <meta name="theme-color" content="#ffffff">
 
-/* ----- Reset / base ----- */
-* { box-sizing: border-box; }
-html, body { height: 100%; margin: 0; }
-:root{
-  --bg: #f5f5f7;
-  --panel: rgba(255,255,255,0.7);
-  --panel-stroke: rgba(0,0,0,0.08);
-  --text: #0b0b0b;
-  --muted: #6b7280;
-  --accent: #0071e3; /* Apple-ish blue */
-  --shadow: 0 10px 30px rgba(0,0,0,0.10);
-  --radius: 16px;
-  --paper-width: 8.5in;   /* for print */
-  --paper-height: 11in;   /* for print */
-  --screen-paper-w: 816px; /* ~8.5in at 96dpi for screen preview */
-  --paper-padding: 28px;
-  --sidebar-w: 320px;
-}
+  <style>
+    :root{
+      --bg: #f5f5f7;
+      --panel: #ffffff;
+      --ink: #0b0b0c;
+      --muted: #5f6368;
+      --border: #e5e7eb;
+      --ring: rgba(46,125,255,.25);
+      --radius: 16px;
+      --shadow: 0 10px 30px rgba(0,0,0,.06), 0 2px 6px rgba(0,0,0,.04);
+      --accent: #0071e3;
+      --accent-ink: #ffffff;
 
-/* Dark mode tuning */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0b0b0b;
-    --panel: rgba(22,22,24,0.6);
-    --panel-stroke: rgba(255,255,255,0.08);
-    --text: #f5f5f7;
-    --muted: #a1a1aa;
-    --shadow: 0 10px 30px rgba(0,0,0,0.5);
-  }
-}
+      --paper-w: 816px; /* 8.5x11 @ 96dpi */
+      --paper-h: 1056px;
 
-body {
-  font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-  background: radial-gradient(1200px 800px at 10% -10%, rgba(0,113,227,0.08), transparent 60%),
-              radial-gradient(1200px 800px at 110% 10%, rgba(255,45,85,0.06), transparent 60%),
-              var(--bg);
-  color: var(--text);
-}
+      --splash-logo: clamp(96px, 20vw, 160px);
+    }
 
-/* ----- Splash ----- */
-#splash {
-  position: fixed; inset: 0; display: grid; place-items: center; z-index: 50;
-  background: var(--bg);
-}
-.splash-card{
-  width: min(720px, 92vw);
-  border-radius: 28px;
-  padding: 40px 28px 32px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.85), rgba(255,255,255,0.65));
-  border: 1px solid var(--panel-stroke);
-  box-shadow: var(--shadow);
-  backdrop-filter: saturate(180%) blur(14px);
-}
-@media (prefers-color-scheme: dark){
-  .splash-card{
-    background: linear-gradient(180deg, rgba(32,32,36,0.85), rgba(24,24,28,0.65));
-  }
-}
-.splash-logo{
-  width: 160px; height: 160px; border-radius: 28px;
-  object-fit: contain; display:block; margin: 0 auto 18px auto;
-  filter: drop-shadow(0 10px 20px rgba(0,0,0,0.15));
-}
-.splash-title{
-  text-align: center; font-weight: 700; letter-spacing: -0.02em;
-  margin: 0; font-size: clamp(28px, 4vw, 46px);
-}
-.splash-sub{
-  text-align: center; color: var(--muted); margin: 8px 0 22px; font-size: 15px;
-}
-.start-btn{
-  display: inline-grid; place-items: center; font-weight: 600;
-  padding: 14px 22px; border-radius: 999px; border: 0;
-  font-size: 16px; color: white; cursor: pointer;
-  margin: 0 auto; width: 180px;
-  background: conic-gradient(from 0deg, #0a84ff, #30d158, #ff9f0a, #ff375f, #0a84ff);
-  background-size: 200% 200%;
-  animation: glow 6s ease infinite;
-  box-shadow: 0 12px 30px rgba(0,0,0,0.15);
-}
-.start-btn:active { transform: translateY(1px); }
-@keyframes glow{
-  0%,100%{ filter: hue-rotate(0deg) saturate(110%); }
-  50%{ filter: hue-rotate(20deg) saturate(120%); }
-}
+    *{ box-sizing:border-box; }
+    html,body{ margin:0; padding:0; height:100%; }
+    body{
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text","SF Pro Display", Segoe UI, Roboto, Helvetica, Arial, system-ui, "Apple Color Emoji","Segoe UI Emoji";
+      background: var(--bg);
+      color: var(--ink);
+      line-height:1.45;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    img{ display:block; max-width:100%; }
 
-/* ----- App layout ----- */
-.app { display: grid; grid-template-columns: var(--sidebar-w) 1fr; min-height: 100vh; }
-@media (max-width: 980px){
-  .app { grid-template-columns: 1fr; }
-}
+    /* Splash */
+    .splash{ position:fixed; inset:0; background:#fff; display:grid; place-items:center; z-index:9999; }
+    .splash-inner{ text-align:center; padding:40px; animation: fadeIn .7s ease both; }
+    .splash .logo{ width:var(--splash-logo); height:var(--splash-logo); margin:0 auto 24px auto; border-radius:24%; box-shadow: 0 8px 30px rgba(0,0,0,.08), inset 0 0 0 1px rgba(0,0,0,.06); object-fit:contain; background:#fafafa; }
+    .splash h1{ font-size: clamp(28px, 5vw, 44px); letter-spacing:-0.02em; font-weight:700; margin:0 0 12px 0; }
+    .splash p{ color: var(--muted); margin:0 0 28px 0; }
+    .btn{ appearance:none; border:0; cursor:pointer; padding:14px 20px; border-radius:999px; font-weight:600; letter-spacing:.01em; transition: transform .08s ease, filter .2s ease, box-shadow .2s ease; box-shadow: 0 8px 24px rgba(0,0,0,.08); outline: none; }
+    .btn:focus{ box-shadow: 0 0 0 6px var(--ring), 0 8px 24px rgba(0,0,0,.08); }
+    .btn:active{ transform: translateY(1px) scale(.995); }
+    .btn-gradient{ color:#fff; background: linear-gradient(135deg, #0ea5e9, #6366f1, #ec4899); background-size:200% 200%; animation: shimmer 6s ease infinite; }
+    @keyframes shimmer{ 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+    @keyframes fadeIn{ from{opacity:0; transform: translateY(6px)} to{opacity:1; transform: translateY(0)} }
 
-.sidebar{
-  position: relative;
-  border-right: 1px solid var(--panel-stroke);
-  background: linear-gradient(180deg, var(--panel), transparent);
-  backdrop-filter: saturate(180%) blur(14px);
-}
-.side-head{
-  padding: 14px 14px 10px; display: flex; align-items: center; gap: 8px;
-  border-bottom: 1px solid var(--panel-stroke);
-}
-.hamburger{
-  display: none;
-  background: transparent; border: 0; width: 36px; height: 36px; border-radius: 10px;
-  cursor: pointer;
-}
-.hamburger svg { width: 22px; height: 22px; stroke: var(--text); }
-@media (max-width: 980px){
-  .hamburger{ display: inline-grid; place-items:center; }
-}
-.brand{
-  font-weight: 700; letter-spacing: -0.02em;
-}
-.side-actions{ margin-left: auto; display: flex; gap: 8px; }
-.icon-btn{
-  background: transparent; border: 1px solid var(--panel-stroke);
-  border-radius: 10px; padding: 8px; display: inline-grid; place-items: center; cursor: pointer;
-}
-.icon-btn:hover{ background: rgba(0,0,0,0.04); }
-@media (prefers-color-scheme: dark) {
-  .icon-btn:hover{ background: rgba(255,255,255,0.06); }
-}
-.icon-btn svg{ width: 18px; height: 18px; stroke: var(--text); }
+    /* App layout */
+    .app{ display:grid; grid-template-columns: 300px 1fr; gap:0; height:100%; }
+    .sidebar{ background:#ffffff; border-right:1px solid var(--border); padding:16px; display:flex; flex-direction:column; }
+    .sidebar .title{ font-size:14px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin:0 0 12px 8px; }
+    .side-actions{ display:flex; gap:8px; margin:0 0 14px 0; flex-wrap:wrap; }
+    .chip{ font-size:13px; padding:8px 12px; border:1px solid var(--border); border-radius:999px; background:#fff; cursor:pointer; }
+    .chip:hover{ border-color:#cfd4dc; }
+    .chip.primary{ background:var(--ink); color:#fff; border-color:var(--ink); }
+    .search{ display:flex; align-items:center; gap:8px; padding:10px 12px; border:1px solid var(--border); border-radius:12px; margin-bottom:10px; background:#fff; }
+    .search input{ border:0; outline:0; flex:1; font:inherit; background:transparent; }
+    .list{ overflow:auto; padding-right:4px; margin-top:8px; }
+    .list-item{ padding:12px; border-radius:12px; border:1px solid transparent; cursor:pointer; display:flex; flex-direction:column; gap:2px; margin:6px 0; }
+    .list-item:hover{ background:#fafafa; border-color:var(--border); }
+    .list-item.active{ background:#eef2ff; border-color:#c7d2fe; }
+    .list-item .name{ font-weight:600; }
+    .list-item .meta{ font-size:12px; color:var(--muted) }
 
-.side-search{ padding: 10px 14px; border-bottom: 1px solid var(--panel-stroke); }
-.side-search input{
-  width: 100%; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--panel-stroke);
-  background: rgba(255,255,255,0.5); color: var(--text); outline: none;
-}
-@media (prefers-color-scheme: dark) {
-  .side-search input{ background: rgba(20,20,22,0.5); }
-}
-.side-list{
-  padding: 8px; overflow: auto; height: calc(100vh - 148px);
-}
-.inv-row{
-  display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center;
-  padding: 10px 10px; border-radius: 12px; cursor: pointer; user-select: none;
-}
-.inv-row:hover{ background: rgba(0,0,0,0.045); }
-.inv-row.active{ outline: 2px solid var(--accent); background: rgba(0,113,227,0.08); }
-.inv-meta{ display: grid; gap: 2px; }
-.inv-title{ font-weight: 600; font-size: 14px; letter-spacing: -0.01em; }
-.inv-sub{ color: var(--muted); font-size: 12px; }
-.inv-row .row-actions{ display: flex; gap: 6px; opacity: 0.6; }
-.inv-row .row-actions .icon-btn{ padding: 6px; }
+    .main{ display:flex; flex-direction:column; min-width:0; }
+    .toolbar{ position:sticky; top:0; background:rgba(255,255,255,.8); backdrop-filter:saturate(120%) blur(10px); border-bottom:1px solid var(--border); padding:10px 16px; display:flex; gap:10px; align-items:center; justify-content:space-between; z-index:5; }
+    .left-controls,.right-controls{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .seg{ display:inline-flex; gap:0; border:1px solid var(--border); border-radius:12px; overflow:hidden; background:#fff; }
+    .seg button{ padding:8px 12px; border:0; background:#fff; cursor:pointer; font-weight:600; border-right:1px solid var(--border); }
+    .seg button:last-child{ border-right:0; }
+    .seg button.active{ background:var(--ink); color:#fff; }
 
-.main{
-  padding: 18px 18px 28px; display: grid; gap: 14px;
-}
-.toolbar{
-  display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
-  border: 1px solid var(--panel-stroke); border-radius: 14px; padding: 10px;
-  background: linear-gradient(180deg, var(--panel), transparent);
-  backdrop-filter: saturate(180%) blur(14px);
-}
-.tool-group{ display: flex; gap: 8px; align-items: center; }
-.tool-label{ color: var(--muted); font-size: 12px; }
-.select, .text, .num, .color{
-  appearance: none; -webkit-appearance: none; -moz-appearance: none;
-  padding: 10px 12px; border-radius: 12px; border: 1px solid var(--panel-stroke);
-  background: rgba(255,255,255,0.5); color: var(--text); outline: none; font-size: 14px;
-}
-@media (prefers-color-scheme: dark) {
-  .select, .text, .num, .color { background: rgba(20,20,22,0.5); }
-}
-.btn{
-  padding: 10px 14px; border-radius: 12px; border: 1px solid var(--panel-stroke);
-  background: rgba(255,255,255,0.7); color: var(--text); cursor: pointer; font-weight: 600;
-}
-.btn:hover{ background: rgba(255,255,255,0.9); }
-@media (prefers-color-scheme: dark){
-  .btn{ background: rgba(28,28,32,0.7); }
-  .btn:hover{ background: rgba(34,34,38,0.9); }
-}
-.btn.primary{
-  border-color: transparent; color: white; background: linear-gradient(180deg, #0a84ff, #0066cc);
-}
-.btn.danger{ border-color: #ef4444; color: #ef4444; }
-.btn.ghost{ background: transparent; }
+    .select, .field{ display:flex; align-items:center; gap:8px; padding:8px 12px; border:1px solid var(--border); border-radius:12px; background:#fff; }
+    .select select, .field input{ font:inherit; border:0; outline:0; background:transparent; min-width: 120px; }
+    .spacer{ flex:1; }
 
-.quick-add{
-  display: grid; grid-template-columns: repeat(6, 1fr) auto; gap: 8px; align-items: center;
-}
-@media (max-width: 1100px){
-  .quick-add{ grid-template-columns: 1fr 1fr; }
-}
-.quick-add .btn{ white-space: nowrap; }
+    .canvas{ overflow:auto; padding:24px; display:grid; place-items:start center; }
+    .paper{ width:var(--paper-w); min-height:var(--paper-h); background: var(--panel); border: 1px solid var(--border); border-radius: 18px; box-shadow: var(--shadow); padding: 44px 48px; margin: 16px auto 48px; position:relative; }
 
-/* ----- Paper (screen) ----- */
-.paper-wrap{ display: grid; place-items: start center; }
-#invoicePaper{
-  width: var(--screen-paper-w);
-  background: white;
-  color: #111;
-  border-radius: 18px;
-  box-shadow: var(--shadow);
-  border: 1px solid rgba(0,0,0,0.06);
-  overflow: hidden;
-  transform-origin: top center;
-}
-.paper-inner{ padding: var(--paper-padding); display: grid; gap: 16px; }
+    /* Invoice */
+    .invoice{ display:flex; flex-direction:column; gap:18px; --accent: #0071e3; --accent-ink: #fff; }
+    .inv-header{ display:grid; grid-template-columns: 1.5fr 1fr; gap:24px; align-items:start; }
+    .brand{ display:flex; gap:14px; align-items:center; }
+    .brand .logo{ width:56px; height:56px; border-radius:14px; object-fit:contain; background:#fafafa; border:1px solid var(--border); }
+    .brand .name{ font-size:22px; font-weight:800; letter-spacing:-.01em; }
+    .brand .sub{ font-size:13px; color:var(--muted) }
 
-/* Common editable hints */
-[contenteditable="true"]{ border-radius: 8px; transition: box-shadow 160ms ease, background 160ms ease; }
-[contenteditable="true"]:focus{ outline: none; background: rgba(0,113,227,0.06); box-shadow: 0 0 0 2px rgba(0,113,227,0.35); }
-.hint{ color: #6b7280; }
+    .block{ border:1px solid var(--border); border-radius:14px; padding:12px 14px; background:#fff; }
+    .block h4{ margin:0 0 8px 0; font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
+    .grid-2{ display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
 
-/* Header block */
-.inv-header{ display: grid; grid-template-columns: 1fr auto; gap: 14px; align-items: start; }
-.inv-logo{ width: 110px; height: 110px; object-fit: contain; }
-.inv-ids{ text-align: right; display: grid; gap: 6px; }
-.inv-title-edit{ font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
+    .tag{ display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; background:var(--accent); color:var(--accent-ink); font-weight:700; font-size:12px; }
 
-/* Parties */
-.parties{ display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.card{
-  border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; padding: 12px;
-  background: linear-gradient(180deg, #fff, #fafafa);
-}
-.card h4{ margin: 0 0 6px 0; font-size: 13px; letter-spacing: .04em; color: #6b7280; text-transform: uppercase; }
+    .items{ width:100%; border-collapse:separate; border-spacing:0 8px; }
+    .items thead th{ text-align:left; font-size:12px; color:var(--muted); font-weight:700; letter-spacing:.06em; text-transform:uppercase; padding:6px 10px; }
+    .row{ background:#fff; border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+    .row td{ padding:12px 10px; vertical-align:top; border-right:1px dashed #eef0f3; }
+    .row td:last-child{ border-right:0; }
+    .muted{ color:var(--muted); font-size:12px; }
+    .num, .money{ text-align:right; white-space:nowrap; }
 
-/* Items */
-.items table{ width: 100%; border-collapse: collapse; }
-.items thead th{ font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: #6b7280; text-align: left; border-bottom: 1px solid rgba(0,0,0,0.09); padding-bottom: 6px; }
-.items tbody td{ padding: 8px 6px; border-bottom: 1px solid rgba(0,0,0,0.06); vertical-align: top; }
-.cell-tight{ width: 90px; }
-.cell-actions{ width: 70px; text-align: right; white-space: nowrap; }
-.row-btn{ border: 0; background: transparent; cursor: pointer; padding: 4px; border-radius: 8px; }
-.row-btn:hover{ background: rgba(0,0,0,0.06); }
-.row-btn svg{ width: 16px; height: 16px; stroke: #111; }
+    .totals{ margin-left:auto; width:min(420px, 100%); border-top:1px dashed #e7e7e9; padding-top:10px; display:grid; gap:6px; }
+    .tot-row{ display:grid; grid-template-columns: 1fr auto; gap:8px; padding:6px 0; }
+    .tot-row.total{ font-weight:800; font-size:18px; border-top:1px solid var(--border); padding-top:10px; margin-top:6px; }
+    .notes{ margin-top:12px; font-size:14px; color:#1f2937; border:1px dashed #e5e7eb; border-radius:12px; padding:12px; }
 
-/* Totals */
-.totals{
-  margin-left: auto; width: min(360px, 100%); display: grid; gap: 8px;
-}
-.tline{ display: flex; justify-content: space-between; align-items: baseline; }
-.tline .lbl{ color: #6b7280; }
-.tline .val{ font-variant-numeric: tabular-nums; }
-.tline.total{ border-top: 1px dashed rgba(0,0,0,0.2); padding-top: 8px; font-weight: 800; font-size: 20px; }
+    /* NEW: Clean, responsive Add Item area (two rows on desktop, stacked on mobile) */
+    .adder{ display:grid; gap:10px; margin:6px 0 12px; }
+    .adder-row{ display:grid; gap:8px; }
+    .adder-row.row1{ grid-template-columns: 1.2fr 2fr; }
+    .adder-row.row2{ grid-template-columns: 0.9fr 0.7fr 0.7fr 0.9fr auto; }
+    .adder input, .adder textarea, .adder button{ font:inherit; padding:10px 12px; border-radius:10px; border:1px solid var(--border); background:#fff; outline:none; }
+    .adder input:focus, .adder textarea:focus{ box-shadow: 0 0 0 4px var(--ring); }
+    .adder textarea{ min-height:40px; resize:vertical; }
+    .adder button{ background: var(--ink); color:#fff; font-weight:700; cursor:pointer; }
+    .adder button:hover{ filter: brightness(1.05); }
+    .field-warn{ border-color:#ef4444 !important; box-shadow: 0 0 0 3px rgba(239,68,68,.25) !important; }
 
-/* Notes / terms */
-.notes textarea{
-  width: 100%; min-height: 80px; resize: vertical; padding: 10px 12px;
-  border-radius: 12px; border: 1px solid rgba(0,0,0,0.1);
-}
+    [contenteditable="true"]:focus{ outline: none; background: #fffceb; box-shadow: 0 0 0 3px rgba(255,214,10,.35); border-radius:8px; }
 
-/* ----- Templates (apply on #invoicePaper) ----- */
-#invoicePaper{ --tpl-accent: var(--accent); }
-#invoicePaper.tpl-classic .inv-title-edit{ font-family: ui-serif, "Times New Roman", Georgia, serif; }
-#invoicePaper.tpl-classic .card{ background: linear-gradient(180deg, #fff, #fefefe); }
-#invoicePaper.tpl-minimal .card{ border: 0; background: transparent; }
-#invoicePaper.tpl-minimal .items thead th, 
-#invoicePaper.tpl-minimal .items tbody td{ border-bottom-color: rgba(0,0,0,0.05); }
-#invoicePaper.tpl-modern .inv-header{ border-left: 6px solid var(--tpl-accent); padding-left: 12px; }
-#invoicePaper.tpl-modern .items thead th{ color: #374151; }
-#invoicePaper.tpl-modern .card h4{ color: #374151; }
-#invoicePaper.tpl-elegant .inv-title-edit{ font-family: "Times New Roman", ui-serif, Georgia, serif; letter-spacing: 0; font-size: 28px; }
-#invoicePaper.tpl-elegant .items thead th{ border-bottom: 2px solid rgba(0,0,0,0.2); }
-#invoicePaper.tpl-elegant .tline.total{ border-top-style: solid; }
-#invoicePaper.tpl-dark{ background: #0b0b0b; color: #f5f5f7; border-color: rgba(255,255,255,0.08); }
-#invoicePaper.tpl-dark .card{ background: linear-gradient(180deg, #161618, #0f0f11); border-color: rgba(255,255,255,0.05); }
-#invoicePaper.tpl-dark .items thead th, 
-#invoicePaper.tpl-dark .items tbody td{ border-bottom-color: rgba(255,255,255,0.1); }
-#invoicePaper.tpl-dark .row-btn svg{ stroke:#f5f5f7; }
+    /* Templates */
+    .theme-minimal { --accent:#0f172a; --accent-ink:#fff; }
+    .theme-ocean   { --accent:#0ea5e9; --accent-ink:#032230; }
+    .theme-rose    { --accent:#ec4899; --accent-ink:#3b071f; }
+    .theme-forest  { --accent:#10b981; --accent-ink:#02281e; }
+    .theme-slate   { --accent:#64748b; --accent-ink:#071019; }
+    .badge-accent{ background:var(--accent); color:var(--accent-ink); }
 
-/* Accents used inside paper (bars, labels etc) */
-.accent{ color: var(--tpl-accent); }
+    /* Mobile */
+    @media (max-width: 980px){
+      .app{ grid-template-columns: 1fr; }
+      .sidebar{ position:fixed; inset:0 auto 0 0; width:84%; max-width:360px; transform:translateX(-100%); transition: transform .25s ease; z-index:50; box-shadow: 20px 0 50px rgba(0,0,0,.15); }
+      .sidebar.open{ transform:none; }
+      .toolbar{ position:sticky; top:0 }
+      .hamburger{ display:inline-flex; }
+      .canvas{ padding:12px; }
+      .paper{ width: 100%; padding: 24px 20px; border-radius: 14px; }
+      .inv-header{ grid-template-columns: 1fr; }
+      .adder-row.row1{ grid-template-columns: 1fr; }
+      .adder-row.row2{ grid-template-columns: 1fr 1fr; }
+    }
+    .hamburger{ display:none; padding:8px 10px; border-radius:10px; border:1px solid var(--border); background:#fff; cursor:pointer; }
 
-/* ----- Print styles ----- */
-@media print {
-  body{ background: white; }
-  #splash, .sidebar, .toolbar, .quick-add{ display: none !important; }
-  #invoicePaper{
-    width: var(--paper-width); min-height: var(--paper-height);
-    border: 0; border-radius: 0; box-shadow: none; color: black; background: white !important;
-  }
-  .paper-inner{ padding: 0.5in; }
-}
-
-/* ----- Mobile sidebar overlay ----- */
-.side-overlay{ display: none; }
-@media (max-width: 980px){
-  .sidebar{ position: fixed; inset: 0 auto 0 0; width: min(92vw, 360px); transform: translateX(-100%); transition: transform 220ms ease; z-index: 30; }
-  .sidebar.open{ transform: translateX(0); }
-  .side-overlay{ display: block; position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(2px); z-index: 20; opacity: 0; pointer-events: none; transition: opacity 220ms ease; }
-  .side-overlay.show{ opacity: 1; pointer-events: auto; }
-}
-</style>
-
-<!-- Dedicated CSS for the invoice area (also injected into PNG export) -->
-<style id="invoice-css">
-/* Keep this focused on elements inside #invoicePaper only */
-#invoicePaper, #invoicePaper * { box-sizing: border-box; }
-#invoicePaper .paper-inner{ font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial; }
-#invoicePaper .inv-header .inv-ids .kv{ display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; align-items: baseline; }
-#invoicePaper .inv-header .inv-ids .kv .k{ color: #6b7280; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; }
-#invoicePaper .inv-header .inv-ids .kv .v{ font-variant-numeric: tabular-nums; }
-#invoicePaper .items table{ font-size: 14px; }
-#invoicePaper .items thead th{ padding-top: 4px; }
-#invoicePaper .totals .val{ font-size: 16px; }
-</style>
+    /* Print */
+    @media print{
+      body{ background:#fff; }
+      .sidebar, .toolbar, .adder, .no-print{ display:none !important; }
+      .paper{ box-shadow:none; border:0; margin:0; width:auto; min-height:auto; padding:0; }
+      @page { size: letter; margin: 0.5in; }
+    }
+  </style>
 </head>
 <body>
-
-<!-- Splash -->
-<div id="splash" role="dialog" aria-modal="true">
-  <div class="splash-card">
-    <img src="logo1.png" alt="Lola’s Pen & Quill Logo" class="splash-logo" onerror="this.style.opacity=0.2; this.alt='logo1.png not found';" />
-    <h1 class="splash-title">Lola’s Pen &amp; Quill</h1>
-    <p class="splash-sub">Apple-style invoices — simple, beautiful, and printable.</p>
-    <div style="display:grid; place-items:center;">
-      <button id="startBtn" class="start-btn" aria-label="Start">Start</button>
+  <!-- Splash -->
+  <div id="splash" class="splash">
+    <div class="splash-inner">
+      <img src="logo1.png" alt="Lola's Pen & Quill Logo" class="logo" />
+      <h1>Lola's Pen &amp; Quill</h1>
+      <p>Apple-style invoice maker — clean, fast, offline, yours.</p>
+      <button class="btn btn-gradient" id="startBtn">Start</button>
     </div>
   </div>
-</div>
 
-<!-- Sidebar overlay (mobile) -->
-<div id="sideOverlay" class="side-overlay"></div>
-
-<!-- App -->
-<div id="app" class="app" style="display:none;">
-  <!-- Sidebar -->
-  <aside class="sidebar" id="sidebar" aria-label="Saved invoices">
-    <div class="side-head">
-      <button class="hamburger" id="closeSide" aria-label="Close sidebar">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6l-12 12" stroke-width="2" stroke-linecap="round"/></svg>
-      </button>
-      <div class="brand">Invoices</div>
+  <!-- App -->
+  <div class="app" id="app" style="display:none">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="title">Invoices</div>
       <div class="side-actions">
-        <button class="icon-btn" id="newInvoiceBtn" title="New invoice" aria-label="New invoice">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke-width="2" stroke-linecap="round"/></svg>
-        </button>
-        <button class="icon-btn" id="importBtn" title="Import (.json)" aria-label="Import JSON">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" stroke-width="2" stroke-linecap="round"/></svg>
-        </button>
-        <button class="icon-btn" id="exportBtn" title="Export current (.json)" aria-label="Export JSON">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M12 21V9m0 0l4 4m-4-4L8 13M5 3h14" stroke-width="2" stroke-linecap="round"/></svg>
-        </button>
+        <button class="chip primary" id="newInvoiceBtn" type="button">New</button>
+        <button class="chip" id="duplicateBtn" type="button">Duplicate</button>
+        <button class="chip" id="deleteBtn" type="button">Delete</button>
       </div>
-    </div>
-    <div class="side-search">
-      <input id="searchInvoices" type="search" placeholder="Search invoices…" />
-    </div>
-    <div id="invoiceList" class="side-list" role="listbox" aria-label="Invoice list"></div>
-  </aside>
-
-  <!-- Main -->
-  <main class="main">
-    <div class="toolbar" role="toolbar" aria-label="Controls">
-      <button class="hamburger" id="openSide" aria-label="Open sidebar">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h16M4 18h16" stroke-width="2" stroke-linecap="round"/></svg>
-      </button>
-
-      <div class="tool-group">
-        <span class="tool-label">Template</span>
-        <select class="select" id="tplSelect" title="Choose template">
-          <option value="tpl-classic">Classic</option>
-          <option value="tpl-minimal">Minimal</option>
-          <option value="tpl-modern">Modern Color</option>
-          <option value="tpl-elegant">Elegant Serif</option>
-          <option value="tpl-dark">Dark Pro</option>
-        </select>
-        <label class="tool-label" for="accentColor">Accent</label>
-        <input id="accentColor" class="color" type="color" value="#0071e3" title="Template accent" />
+      <div class="search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M21 21l-4.2-4.2M5 11a6 6 0 1012 0A6 6 0 005 11z" stroke="#6b7280" stroke-width="2" stroke-linecap="round"/></svg>
+        <input id="searchInput" placeholder="Search…" />
       </div>
-
-      <div class="tool-group">
-        <span class="tool-label">Currency</span>
-        <input id="currencySym" class="text" style="width:70px" value="$" maxlength="3" />
-        <span class="tool-label">Tax %</span>
-        <input id="taxRate" class="num" type="number" step="0.01" value="0" style="width:90px" />
-        <span class="tool-label">Discount</span>
-        <input id="discount" class="num" type="number" step="0.01" value="0" style="width:110px" placeholder="e.g. 25 or 25%" title="Absolute (25) or percent (25%)"/>
+      <div class="list" id="invoiceList"></div>
+      <div style="margin-top:auto; font-size:12px; color:var(--muted);">
+        <div style="display:flex; gap:6px; align-items:center;">
+          <span class="badge-accent tag">Lola’s Pen &amp; Quill</span>
+          <span>v1.1</span>
+        </div>
+        <div style="margin-top:6px;">Stored locally in your browser.</div>
       </div>
+    </aside>
 
-      <div class="tool-group" style="margin-left:auto;">
-        <button class="btn" id="pngBtn" title="Export PNG">Save PNG</button>
-        <button class="btn primary" id="pdfBtn" title="Print or Save as PDF">Print / PDF</button>
-        <button class="btn danger" id="deleteBtn" title="Delete invoice">Delete</button>
-      </div>
-    </div>
+    <!-- Main -->
+    <main class="main">
+      <div class="toolbar no-print">
+        <div class="left-controls">
+          <button class="hamburger" id="menuBtn" type="button">☰</button>
 
-    <div class="quick-add" aria-label="Quick add line item">
-      <input id="qaJob" class="text" placeholder="Job / Item name" />
-      <input id="qaDate" class="text" type="date" />
-      <input id="qaHours" class="num" type="number" step="0.01" placeholder="Hours" />
-      <input id="qaRate" class="num" type="number" step="0.01" placeholder="Rate" />
-      <input id="qaAmount" class="num" type="number" step="0.01" placeholder="Amount (auto if empty)" />
-      <input id="qaDesc" class="text" placeholder="Description" />
-      <button id="qaAdd" class="btn">Add</button>
-    </div>
-
-    <div class="paper-wrap">
-      <section id="invoicePaper" class="tpl-classic" aria-label="Invoice preview">
-        <div class="paper-inner">
-          <!-- Header -->
-          <div class="inv-header">
-            <div>
-              <img src="logo1.png" alt="Logo" class="inv-logo" onerror="this.style.opacity=0.15" />
-              <div class="inv-title-edit" contenteditable="true" data-bind="title">INVOICE</div>
-            </div>
-            <div class="inv-ids">
-              <div class="kv">
-                <div class="k">Invoice #</div>
-                <div class="v" contenteditable="true" data-bind="number">0001</div>
-                <div class="k">Date</div>
-                <div class="v" contenteditable="true" data-bind="date">2025-08-31</div>
-                <div class="k">Due</div>
-                <div class="v" contenteditable="true" data-bind="dueDate">Net 15</div>
-              </div>
-            </div>
+          <div class="select">
+            <label for="templateSel" style="font-size:12px; color:var(--muted)">Template</label>
+            <select id="templateSel">
+              <option value="theme-minimal">Serene White</option>
+              <option value="theme-ocean" selected>Ocean Mist</option>
+              <option value="theme-rose">Rosé Gold</option>
+              <option value="theme-forest">Forest Ink</option>
+              <option value="theme-slate">Midnight Slate</option>
+            </select>
           </div>
 
-          <!-- Parties -->
-          <div class="parties">
-            <div class="card">
-              <h4 class="accent">From</h4>
-              <div contenteditable="true" data-bind="from">
-                Lola’s Pen & Quill<br>
-                hello@lola.example<br>
-                123 Apple Way, Cupertino, CA
-              </div>
-            </div>
-            <div class="card">
-              <h4 class="accent">Bill To</h4>
-              <div contenteditable="true" data-bind="to">
-                Client Name<br>
-                client@company.com<br>
-                1 Infinite Loop, Cupertino, CA
-              </div>
-            </div>
+          <div class="field">
+            <label style="font-size:12px; color:var(--muted)">Currency</label>
+            <input id="currencyInput" value="$" style="width:3.5em; text-align:center" />
           </div>
 
-          <!-- Items -->
-          <div class="items">
-            <table>
+          <div class="field">
+            <label style="font-size:12px; color:var(--muted)">Tax %</label>
+            <input id="taxInput" type="number" step="0.01" value="0" style="width:5.5em; text-align:right" />
+          </div>
+
+          <div class="seg" role="group" aria-label="Export">
+            <button id="printBtn" type="button" title="Print / Save as PDF">Print / PDF</button>
+            <button id="pngBtn" type="button" title="Export PNG">PNG</button>
+            <button id="jsonBtn" type="button" title="Export JSON">Export</button>
+            <button id="importBtn" type="button" title="Import JSON">Import</button>
+          </div>
+        </div>
+
+        <div class="right-controls">
+          <div class="field">
+            <label style="font-size:12px; color:var(--muted)">Rename</label>
+            <input id="renameInput" placeholder="Invoice title…" />
+          </div>
+          <div class="seg">
+            <button id="saveBtn" type="button">Save</button>
+          </div>
+        </div>
+      </div>
+
+      <section class="canvas">
+        <div class="paper" id="paper">
+          <!-- Invoice -->
+          <div class="invoice theme-ocean" id="invoiceRoot">
+            <div class="inv-header">
+              <div class="block" style="display:flex; flex-direction:column; gap:10px;">
+                <div class="brand">
+                  <img src="logo1.png" class="logo" alt="">
+                  <div>
+                    <div class="name" id="brandNameEl" contenteditable="true">Lola's Pen &amp; Quill</div>
+                    <div class="sub" id="brandSubEl" contenteditable="true">Design &amp; Illustration Studio</div>
+                  </div>
+                </div>
+                <div class="grid-2">
+                  <div class="block" style="padding:10px;">
+                    <h4>Bill To</h4>
+                    <div id="billToBlock" contenteditable="true">Client Name<br>Client Company<br>123 Client St.<br>City, State ZIP</div>
+                  </div>
+                  <div class="block" style="padding:10px;">
+                    <h4>From</h4>
+                    <div id="fromBlock" contenteditable="true">Lola's Pen &amp; Quill<br>hello@lola.example<br>(555) 555-0199</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="block">
+                <h4>Invoice</h4>
+                <div class="grid-2">
+                  <div>
+                    <div class="muted">Invoice #</div>
+                    <div contenteditable="true" id="invNumber">LPQ-<span id="autoID"></span></div>
+                  </div>
+                  <div>
+                    <div class="muted">Issue Date</div>
+                    <div contenteditable="true" id="invDate"><span id="autoDate"></span></div>
+                  </div>
+                  <div>
+                    <div class="muted">Due Date</div>
+                    <div contenteditable="true" id="dueDate"><span id="autoDue"></span></div>
+                  </div>
+                  <div>
+                    <div class="muted">Status</div>
+                    <div class="tag" contenteditable="true" id="statusTag">Due</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- CLEAN Add Item (two rows) -->
+            <div class="adder no-print" id="adder">
+              <div class="adder-row row1">
+                <input id="a_job" placeholder="Job / Item" />
+                <textarea id="a_desc" placeholder="Description…"></textarea>
+              </div>
+              <div class="adder-row row2">
+                <input id="a_date" type="date" />
+                <input id="a_hours" type="number" step="0.01" placeholder="Hours" />
+                <input id="a_rate" type="number" step="0.01" placeholder="Rate" />
+                <input id="a_amount" type="number" step="0.01" placeholder="Amount (optional)" />
+                <button id="a_add" type="button">Add</button>
+              </div>
+            </div>
+
+            <!-- Items -->
+            <table class="items" id="itemsTbl">
               <thead>
                 <tr>
                   <th>Job</th>
                   <th>Date</th>
-                  <th class="cell-tight">Hours</th>
-                  <th class="cell-tight">Rate</th>
-                  <th class="cell-tight">Amount</th>
+                  <th class="num">Hours</th>
+                  <th class="num">Rate</th>
+                  <th class="num">Amount</th>
                   <th>Description</th>
-                  <th class="cell-actions"> </th>
+                  <th class="no-print"></th>
                 </tr>
               </thead>
-              <tbody id="itemsBody">
-                <!-- rows injected -->
-              </tbody>
+              <tbody id="itemsBody"></tbody>
             </table>
-          </div>
 
-          <!-- Totals -->
-          <div class="totals">
-            <div class="tline"><div class="lbl">Subtotal</div><div class="val" id="subtotalVal">$0.00</div></div>
-            <div class="tline"><div class="lbl">Tax</div><div class="val" id="taxVal">$0.00</div></div>
-            <div class="tline"><div class="lbl">Discount</div><div class="val" id="discVal">-$0.00</div></div>
-            <div class="tline total"><div class="lbl accent">Total Due</div><div class="val" id="totalVal">$0.00</div></div>
-          </div>
+            <!-- Totals -->
+            <div class="totals">
+              <div class="tot-row"><div>Subtotal</div><div class="money" id="subtotalMoney">$0.00</div></div>
+              <div class="tot-row"><div>Tax (<span id="taxPct">0</span>%)</div><div class="money" id="taxMoney">$0.00</div></div>
+              <div class="tot-row total"><div>Total</div><div class="money" id="totalMoney">$0.00</div></div>
+              <div class="tot-row"><div>Paid</div><div class="money" contenteditable="true" id="paidMoney">$0.00</div></div>
+              <div class="tot-row"><div><strong>Balance Due</strong></div><div class="money" id="dueMoney"><strong>$0.00</strong></div></div>
+            </div>
 
-          <!-- Notes -->
-          <div class="notes">
-            <textarea id="notesArea" placeholder="Notes / Terms…"></textarea>
+            <!-- Notes -->
+            <div class="notes" contenteditable="true" id="notesEl">
+              Thank you for your business! Payment by bank transfer or card is appreciated within 15 days.
+            </div>
           </div>
         </div>
       </section>
-    </div>
-  </main>
-</div>
+    </main>
+  </div>
 
-<script>
-/* ==============================
-   Lola’s Pen & Quill App Logic
-   ============================== */
+  <script>
+    /* ========== Utilities ========== */
+    const $ = (sel, el=document) => el.querySelector(sel);
+    const $$ = (sel, el=document) => Array.from(el.querySelectorAll(sel));
+    const uid = () => 'lpq_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+    const todayISO = () => new Date().toISOString().slice(0,10);
+    const addDaysISO = (d=0) => new Date(Date.now()+d*86400000).toISOString().slice(0,10);
+    const fmtMoney = (n, sym='$')=>{
+      if(isNaN(n)||!isFinite(n)) n=0;
+      const sign = n<0 ? '-' : '';
+      n = Math.abs(n);
+      return `${sign}${sym}${n.toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2})}`;
+    };
+    const parseMoney = (s, sym='$')=>{
+      if(typeof s !== 'string') return Number(s)||0;
+      return Number(s.replace(sym,'').replace(/,/g,'').trim())||0;
+    };
+    const debounce = (fn, ms=200)=>{ let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), ms); }; };
 
-const $ = (sel, el=document) => el.querySelector(sel);
-const $$ = (sel, el=document) => Array.from(el.querySelectorAll(sel));
+    /* ========== Storage (localStorage) ========== */
+    const Store = {
+      keyAll:'lpq_invoices', keyOpen:'lpq_open',
+      readAll(){ try{ return JSON.parse(localStorage.getItem(this.keyAll)||'[]'); } catch(e){ return []; } },
+      writeAll(list){ localStorage.setItem(this.keyAll, JSON.stringify(list)); },
+      readOpen(){ return localStorage.getItem(this.keyOpen)||''; },
+      writeOpen(id){ localStorage.setItem(this.keyOpen, id); },
+    };
 
-const STORAGE_KEY = 'lpq_invoices_v1';
-const STORAGE_SEL = 'lpq_selected_id_v1';
+    /* ========== App State ========== */
+    const State = { invoices:[], current:null };
 
-const state = {
-  invoices: [],
-  selectedId: null
-};
-
-function uid(){ return 'inv_' + Math.random().toString(36).slice(2) + Date.now().toString(36); }
-function nowISO(){ return new Date().toISOString(); }
-
-function fmtMoney(n, sym){
-  const v = isFinite(n) ? Number(n) : 0;
-  try {
-    // Try to infer if sym is a currency code (3 letters) vs symbol
-    if (/^[A-Z]{3}$/.test(sym || '')) {
-      return new Intl.NumberFormat(undefined, { style:'currency', currency: sym }).format(v);
-    }
-  } catch(e){}
-  // Symbol prefix
-  return (sym || '$') + v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-}
-
-function parseDiscount(input, base){
-  const s = (input ?? '').toString().trim();
-  if (!s) return 0;
-  if (/%$/.test(s)){ // percentage
-    const p = parseFloat(s.replace('%','')) || 0;
-    return base * (p/100);
-  }
-  const a = parseFloat(s) || 0;
-  return a < 0 ? 0 : a;
-}
-
-function load(){
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) state.invoices = JSON.parse(raw);
-    const sel = localStorage.getItem(STORAGE_SEL);
-    if (sel) state.selectedId = sel;
-  } catch(e){ console.warn('Load failed', e); }
-}
-
-function save(){
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state.invoices));
-  if (state.selectedId) localStorage.setItem(STORAGE_SEL, state.selectedId);
-}
-
-function getCurrent(){
-  return state.invoices.find(i => i.id === state.selectedId) || null;
-}
-
-function createInvoice(opts={}){
-  const id = uid();
-  const inv = {
-    id,
-    title: opts.title || 'INVOICE',
-    number: opts.number || '0001',
-    date: opts.date || (new Date().toISOString().slice(0,10)),
-    dueDate: opts.dueDate || 'Net 15',
-    from: opts.from || 'Lola’s Pen & Quill\nhello@lola.example\n123 Apple Way, Cupertino, CA',
-    to: opts.to || 'Client Name\nclient@company.com\n1 Infinite Loop, Cupertino, CA',
-    notes: opts.notes || '',
-    currency: opts.currency || '$',
-    taxRate: Number(opts.taxRate ?? 0),
-    discount: opts.discount || '0',
-    template: opts.template || 'tpl-classic',
-    accent: opts.accent || '#0071e3',
-    createdAt: nowISO(),
-    updatedAt: nowISO(),
-    items: opts.items || []
-  };
-  state.invoices.unshift(inv);
-  state.selectedId = id;
-  save();
-  renderSidebar();
-  renderInvoice();
-}
-
-function duplicateInvoice(id){
-  const src = state.invoices.find(i => i.id === id);
-  if (!src) return;
-  const copy = JSON.parse(JSON.stringify(src));
-  copy.id = uid();
-  copy.number = String(Number(src.number||'0') + 1).padStart((src.number||'').length || 4, '0');
-  copy.createdAt = nowISO();
-  copy.updatedAt = nowISO();
-  state.invoices.unshift(copy);
-  state.selectedId = copy.id;
-  save();
-  renderSidebar();
-  renderInvoice();
-}
-
-function deleteInvoice(id){
-  const idx = state.invoices.findIndex(i => i.id === id);
-  if (idx >= 0){
-    state.invoices.splice(idx,1);
-    if (state.selectedId === id) {
-      state.selectedId = state.invoices[0]?.id || null;
-    }
-    save();
-    renderSidebar();
-    renderInvoice();
-  }
-}
-
-function updateInvoice(mut){
-  const inv = getCurrent();
-  if (!inv) return;
-  mut(inv);
-  inv.updatedAt = nowISO();
-  save();
-  renderSidebarMeta(inv.id);
-  renderTotals(inv);
-}
-
-/* ---- Sidebar rendering ---- */
-function renderSidebar(filter=''){
-  const list = $('#invoiceList');
-  list.innerHTML = '';
-  const q = filter.trim().toLowerCase();
-  state.invoices
-    .filter(inv => !q || (inv.title?.toLowerCase().includes(q) || inv.to?.toLowerCase().includes(q) || inv.number?.toLowerCase().includes(q)))
-    .forEach(inv => {
-      const row = document.createElement('div');
-      row.className = 'inv-row' + (inv.id === state.selectedId ? ' active':'');
-      row.setAttribute('role','option');
-      row.dataset.id = inv.id;
-      row.innerHTML = `
-        <div class="inv-meta">
-          <div class="inv-title">${escapeHtml(inv.title || 'INVOICE')} — ${escapeHtml(inv.number||'')}</div>
-          <div class="inv-sub">${escapeHtml(oneLine(inv.to || ''))}</div>
-          <div class="inv-sub">Updated: ${new Date(inv.updatedAt).toLocaleString()}</div>
-        </div>
-        <div class="row-actions">
-          <button class="icon-btn" title="Duplicate" data-act="dup"><svg viewBox="0 0 24 24" fill="none"><path d="M8 8h10v10H8zM6 6h10" stroke-width="2" stroke-linecap="round"/></svg></button>
-          <button class="icon-btn" title="Delete" data-act="del"><svg viewBox="0 0 24 24" fill="none"><path d="M6 7h12M9 7V5h6v2M9 10v7M12 10v7M15 10v7" stroke-width="2" stroke-linecap="round"/></svg></button>
-        </div>`;
-      row.addEventListener('click', (e)=>{
-        const act = e.target.closest('[data-act]')?.dataset.act;
-        if (act === 'dup'){ e.stopPropagation(); duplicateInvoice(inv.id); return; }
-        if (act === 'del'){ e.stopPropagation(); if (confirm('Delete this invoice?')) deleteInvoice(inv.id); return; }
-        state.selectedId = inv.id;
-        save();
-        renderSidebar();
-        renderInvoice();
-        closeSidebar();
-      });
-      list.appendChild(row);
+    /* ========== Splash boot ========== */
+    $('#startBtn').addEventListener('click', ()=>{
+      $('#splash').style.display='none';
+      $('#app').style.display='grid';
+      initApp();
     });
-}
 
-function renderSidebarMeta(id){
-  const row = $(`.inv-row[data-id="${id}"]`);
-  const inv = state.invoices.find(i => i.id === id);
-  if (!row || !inv) return;
-  row.querySelector('.inv-title').textContent = `${inv.title || 'INVOICE'} — ${inv.number || ''}`;
-  const subs = row.querySelectorAll('.inv-sub');
-  if (subs[0]) subs[0].textContent = oneLine(inv.to || '');
-  if (subs[1]) subs[1].textContent = `Updated: ${new Date(inv.updatedAt).toLocaleString()}`;
-  $$('.inv-row').forEach(r => r.classList.toggle('active', r.dataset.id === state.selectedId));
-}
-
-/* ---- Invoice rendering ---- */
-function renderInvoice(){
-  const inv = getCurrent();
-  if (!inv){
-    // nothing selected: maybe create a starter invoice
-    return;
-  }
-  // Template + accent
-  const paper = $('#invoicePaper');
-  paper.className = inv.template || 'tpl-classic';
-  paper.style.setProperty('--tpl-accent', inv.accent || '#0071e3');
-
-  // Header binds
-  $('[data-bind="title"]').innerText = inv.title || 'INVOICE';
-  $('[data-bind="number"]').innerText = inv.number || '';
-  $('[data-bind="date"]').innerText = inv.date || '';
-  $('[data-bind="dueDate"]').innerText = inv.dueDate || '';
-
-  // Parties
-  $('[data-bind="from"]').innerText = inv.from || '';
-  $('[data-bind="to"]').innerText = inv.to || '';
-
-  // Notes
-  $('#notesArea').value = inv.notes || '';
-
-  // Controls
-  $('#tplSelect').value = inv.template || 'tpl-classic';
-  $('#accentColor').value = inv.accent || '#0071e3';
-  $('#currencySym').value = inv.currency || '$';
-  $('#taxRate').value = Number(inv.taxRate ?? 0);
-  $('#discount').value = inv.discount ?? '0';
-
-  // Items
-  const tb = $('#itemsBody');
-  tb.innerHTML = '';
-  inv.items.forEach((it, idx)=> tb.appendChild(renderRow(it, idx)));
-
-  renderTotals(inv);
-}
-
-function renderTotals(inv){
-  const cur = inv.currency || '$';
-  const sub = inv.items.reduce((s, it)=> s + (Number(it.amount) || (Number(it.hours||0) * Number(it.rate||0))), 0);
-  const tax = sub * (Number(inv.taxRate||0)/100);
-  const disc = parseDiscount(inv.discount, sub + tax);
-  const total = Math.max(0, sub + tax - disc);
-  $('#subtotalVal').textContent = fmtMoney(sub, cur);
-  $('#taxVal').textContent = fmtMoney(tax, cur);
-  $('#discVal').textContent = '-' + fmtMoney(disc, cur).replace(/^[-]/,'');
-  $('#totalVal').textContent = fmtMoney(total, cur);
-}
-
-/* ---- Row rendering & editing ---- */
-function renderRow(it, idx){
-  const tr = document.createElement('tr');
-  tr.dataset.id = it.id;
-  tr.innerHTML = `
-    <td contenteditable="true" data-f="job">${escapeHtml(it.job||'')}</td>
-    <td contenteditable="true" data-f="date">${escapeHtml(it.date||'')}</td>
-    <td contenteditable="true" data-f="hours" class="cell-tight">${escapeHtml(toNumStr(it.hours))}</td>
-    <td contenteditable="true" data-f="rate" class="cell-tight">${escapeHtml(toNumStr(it.rate))}</td>
-    <td contenteditable="true" data-f="amount" class="cell-tight">${escapeHtml(toNumStr(it.amount))}</td>
-    <td contenteditable="true" data-f="description">${escapeHtml(it.description||'')}</td>
-    <td class="cell-actions">
-      <button class="row-btn" title="Move up" data-act="up"><svg viewBox="0 0 24 24" fill="none"><path d="M7 14l5-5 5 5" stroke-width="2" stroke-linecap="round"/></svg></button>
-      <button class="row-btn" title="Move down" data-act="down"><svg viewBox="0 0 24 24" fill="none"><path d="M7 10l5 5 5-5" stroke-width="2" stroke-linecap="round"/></svg></button>
-      <button class="row-btn" title="Delete" data-act="del"><svg viewBox="0 0 24 24" fill="none"><path d="M6 7h12M9 7V5h6v2M9 10v7M12 10v7M15 10v7" stroke-width="2" stroke-linecap="round"/></svg></button>
-    </td>
-  `;
-  tr.addEventListener('input', onCellEdit);
-  tr.addEventListener('click', onRowAction);
-  return tr;
-}
-
-function toNumStr(v){ if (v===undefined || v===null || v==='') return ''; const n = Number(v); return isFinite(n) ? String(n) : ''; }
-
-function onCellEdit(e){
-  const td = e.target.closest('[data-f]'); if (!td) return;
-  const field = td.dataset.f;
-  const tr = td.closest('tr');
-  const id = tr.dataset.id;
-  updateInvoice(inv => {
-    const it = inv.items.find(x => x.id === id);
-    if (!it) return;
-    const v = td.innerText.trim();
-    if (['hours','rate','amount'].includes(field)){
-      it[field] = v === '' ? '' : Number(v);
-      // If amount empty, compute from hours*rate; if amount edited, keep it.
-      if (field==='hours' || field==='rate'){
-        if (it.amount === '' || it.amount === null || isNaN(Number(it.amount))){
-          it.amount = (Number(it.hours)||0) * (Number(it.rate)||0);
-          // reflect change in cell if empty
-          const amtCell = tr.querySelector('[data-f="amount"]');
-          if (amtCell && (amtCell.innerText.trim()==='' || isNaN(Number(amtCell.innerText.trim())))){
-            amtCell.innerText = toNumStr(it.amount);
-          }
-        }
+    /* ========== Init ========== */
+    function initApp(){
+      State.invoices = Store.readAll();
+      if(State.invoices.length===0){
+        const id = uid();
+        State.invoices.push(makeBlankInvoice(id,'New Invoice'));
+        Store.writeAll(State.invoices);
+        Store.writeOpen(id);
       }
-    } else {
-      it[field] = v;
+      const lastId = Store.readOpen();
+      openInvoice(State.invoices.find(x=>x.id===lastId)?.id || State.invoices[0].id);
+      renderSidebar();
+      wireSidebar();
+      wireToolbar();
+      wireAdder();
     }
-  });
-}
 
-function onRowAction(e){
-  const btn = e.target.closest('[data-act]'); if (!btn) return;
-  const act = btn.dataset.act;
-  const tr = btn.closest('tr');
-  const id = tr.dataset.id;
-  updateInvoice(inv => {
-    const idx = inv.items.findIndex(x => x.id === id);
-    if (idx < 0) return;
-    if (act==='del'){ inv.items.splice(idx,1); tr.remove(); }
-    if (act==='up' && idx>0){ const tmp=inv.items[idx-1]; inv.items[idx-1]=inv.items[idx]; inv.items[idx]=tmp; }
-    if (act==='down' && idx<inv.items.length-1){ const tmp=inv.items[idx+1]; inv.items[idx+1]=inv.items[idx]; inv.items[idx]=tmp; }
-  });
-  renderInvoice();
-}
+    function makeBlankInvoice(id, name){
+      return {
+        id, name,
+        template:'theme-ocean',
+        currency:'$',
+        tax:0,
+        paid:0,
+        header:{
+          billTo:"Client Name\nClient Company\n123 Client St.\nCity, State ZIP",
+          from:"Lola's Pen & Quill\nhello@lola.example\n(555) 555-0199",
+          number:`LPQ-${id.slice(-6).toUpperCase()}`,
+          date: todayISO(),
+          due: addDaysISO(15),
+          status:'Due',
+          brandName:"Lola's Pen & Quill",
+          brandSub:"Design & Illustration Studio",
+        },
+        items:[]
+      };
+    }
 
-/* ---- Quick Add ---- */
-$('#qaAdd').addEventListener('click', ()=>{
-  const job = $('#qaJob').value.trim();
-  const date = $('#qaDate').value.trim();
-  const hours = parseFloat($('#qaHours').value);
-  const rate = parseFloat($('#qaRate').value);
-  const amountField = $('#qaAmount').value.trim();
-  const desc = $('#qaDesc').value.trim();
-  const amount = amountField ? Number(amountField) : (isFinite(hours)&&isFinite(rate) ? hours*rate : 0);
-  if (!job && !desc){ alert('Enter at least a Job name or Description.'); return; }
-  updateInvoice(inv => {
-    inv.items.push({ id: uid(), job, date, hours: isFinite(hours)?hours:'', rate: isFinite(rate)?rate:'', amount: isFinite(amount)?amount:'', description: desc });
-  });
-  // clear
-  $('#qaJob').value=''; $('#qaDate').value=''; $('#qaHours').value=''; $('#qaRate').value=''; $('#qaAmount').value=''; $('#qaDesc').value='';
-  renderInvoice();
-});
+    /* ========== Sidebar ========== */
+    function renderSidebar(filter=''){
+      const q = filter.trim().toLowerCase();
+      const listEl = $('#invoiceList');
+      listEl.innerHTML='';
+      State.invoices
+        .filter(x=> !q || x.name.toLowerCase().includes(q) || x.header.number.toLowerCase().includes(q))
+        .sort((a,b)=> a.name.localeCompare(b.name))
+        .forEach(inv=>{
+          const el = document.createElement('div');
+          el.className = 'list-item' + (State.current && inv.id===State.current.id ? ' active':'');
+          el.dataset.id = inv.id;
+          el.innerHTML = `<div class="name">${escapeHTML(inv.name||'Untitled')}</div>
+                          <div class="meta">${escapeHTML(inv.header.number)} · ${escapeHTML(inv.header.date)}</div>`;
+          el.addEventListener('click', ()=> openInvoice(inv.id));
+          listEl.appendChild(el);
+        });
+    }
+    function wireSidebar(){
+      $('#newInvoiceBtn').addEventListener('click', ()=>{
+        const id = uid();
+        State.invoices.unshift(makeBlankInvoice(id,'Untitled'));
+        Store.writeAll(State.invoices);
+        openInvoice(id);
+        renderSidebar($('#searchInput').value);
+      });
+      $('#duplicateBtn').addEventListener('click', ()=>{
+        if(!State.current) return;
+        const copy = structuredClone(State.current);
+        copy.id = uid();
+        copy.name = (copy.name||'Invoice') + ' (Copy)';
+        State.invoices.unshift(copy);
+        Store.writeAll(State.invoices);
+        openInvoice(copy.id);
+        renderSidebar($('#searchInput').value);
+      });
+      $('#deleteBtn').addEventListener('click', ()=>{
+        if(!State.current) return;
+        if(!confirm('Delete this invoice? This cannot be undone.')) return;
+        State.invoices = State.invoices.filter(x=>x.id!==State.current.id);
+        Store.writeAll(State.invoices);
+        if(State.invoices.length===0){
+          const id = uid();
+          State.invoices.push(makeBlankInvoice(id,'New Invoice'));
+        }
+        openInvoice(State.invoices[0].id);
+        renderSidebar($('#searchInput').value);
+      });
+      $('#searchInput').addEventListener('input', (e)=> renderSidebar(e.target.value));
+      $('#menuBtn').addEventListener('click', ()=> $('#sidebar').classList.toggle('open'));
+    }
 
-/* ---- Inline binds (header/parties/notes) ---- */
-function bindContenteditable(){
-  $$('#invoicePaper [contenteditable][data-bind]').forEach(node=>{
-    node.addEventListener('input', ()=>{
-      const key = node.dataset.bind;
-      updateInvoice(inv => { inv[key] = node.innerText; });
-    });
-  });
-  $('#notesArea').addEventListener('input', ()=>{
-    updateInvoice(inv => { inv.notes = $('#notesArea').value; });
-  });
-}
+    /* ========== Open / Render Invoice ========== */
+    function openInvoice(id){
+      const inv = State.invoices.find(x=>x.id===id);
+      if(!inv) return;
+      State.current = inv;
+      Store.writeOpen(id);
+      renderSidebar($('#searchInput').value);
+      hydrateInvoice(inv);
+    }
 
-/* ---- Controls ---- */
-$('#tplSelect').addEventListener('change', ()=>{
-  const val = $('#tplSelect').value;
-  $('#invoicePaper').className = val;
-  updateInvoice(inv => { inv.template = val; });
-});
-$('#accentColor').addEventListener('input', ()=>{
-  const val = $('#accentColor').value;
-  $('#invoicePaper').style.setProperty('--tpl-accent', val);
-  updateInvoice(inv => { inv.accent = val; });
-});
-$('#currencySym').addEventListener('input', ()=>{
-  const val = $('#currencySym').value.trim().toUpperCase();
-  updateInvoice(inv => { inv.currency = val || '$'; });
-});
-$('#taxRate').addEventListener('input', ()=>{
-  updateInvoice(inv => { inv.taxRate = Number($('#taxRate').value) || 0; });
-});
-$('#discount').addEventListener('input', ()=>{
-  updateInvoice(inv => { inv.discount = $('#discount').value; });
-});
+    function hydrateInvoice(inv){
+      const root = $('#invoiceRoot');
+      root.className = 'invoice ' + (inv.template||'theme-ocean');
 
-$('#pdfBtn').addEventListener('click', ()=>{ window.print(); });
-$('#pngBtn').addEventListener('click', exportPNG);
-$('#deleteBtn').addEventListener('click', ()=>{
-  const inv = getCurrent(); if (!inv) return;
-  if (confirm('Delete this invoice?')) deleteInvoice(inv.id);
-});
+      // Header elements
+      $('#brandNameEl').innerText = inv.header.brandName||"Lola's Pen & Quill";
+      $('#brandSubEl').innerText  = inv.header.brandSub||"Design & Illustration Studio";
+      $('#billToBlock').innerText = inv.header.billTo||'';
+      $('#fromBlock').innerText   = inv.header.from||'';
+      $('#invNumber').innerText   = inv.header.number||'';
+      $('#invDate').innerText     = inv.header.date||'';
+      $('#dueDate').innerText     = inv.header.due||'';
+      $('#statusTag').innerText   = inv.header.status||'Due';
 
-$('#newInvoiceBtn').addEventListener('click', ()=>{
-  createInvoice({ number: nextNumberGuess(), title: 'INVOICE' });
-});
-$('#searchInvoices').addEventListener('input', (e)=> renderSidebar(e.target.value));
+      // Toolbar mirrors
+      $('#currencyInput').value = inv.currency||'$';
+      $('#taxInput').value = inv.tax??0; $('#taxPct').innerText = inv.tax??0;
+      $('#paidMoney').innerText = fmtMoney(inv.paid||0, inv.currency||'$');
+      $('#renameInput').value = inv.name||'';
+      $('#templateSel').value = inv.template||'theme-ocean';
 
-/* JSON import/export (for backups/sharing) */
-$('#exportBtn').addEventListener('click', ()=>{
-  const inv = getCurrent(); if (!inv) return;
-  const blob = new Blob([JSON.stringify(inv, null, 2)], {type:'application/json'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `invoice-${inv.number || inv.id}.json`;
-  a.click();
-  URL.revokeObjectURL(a.href);
-});
-$('#importBtn').addEventListener('click', ()=>{
-  const inp = document.createElement('input'); inp.type='file'; inp.accept='.json,application/json';
-  inp.onchange = async ()=>{
-    const file = inp.files?.[0]; if (!file) return;
-    const text = await file.text();
-    try {
-      const obj = JSON.parse(text);
-      obj.id = uid(); obj.createdAt = nowISO(); obj.updatedAt = nowISO();
-      if (!obj.items) obj.items = [];
-      state.invoices.unshift(obj);
-      state.selectedId = obj.id;
-      save(); renderSidebar(); renderInvoice();
-    } catch(e){ alert('Invalid JSON'); }
-  };
-  inp.click();
-});
+      // Items
+      const body = $('#itemsBody');
+      body.innerHTML='';
+      inv.items.forEach((it, idx)=> body.appendChild(renderRow(it, idx)));
 
-/* ---- PNG Export via SVG foreignObject ---- */
-function exportPNG(){
-  const paper = $('#invoicePaper');
-  const css = document.getElementById('invoice-css').textContent + '\n' + minimalInlinePaperColors(paper);
-  const clone = paper.cloneNode(true);
-  // Remove contenteditable for capture to avoid caret artifacts
-  clone.querySelectorAll('[contenteditable]').forEach(n=> n.removeAttribute('contenteditable'));
+      recalcTotals();
+      bindEditableHeader();
+    }
 
-  const wrap = document.createElement('div');
-  wrap.appendChild(clone);
-  const html = wrap.innerHTML
-    .replaceAll('src="logo1.png"', 'src="'+location.origin+location.pathname.replace(/[^/]+$/,'')+'logo1.png"')
-    .replace(/<script[\s\S]*?<\/script>/gi,''); // safety
+    function bindEditableHeader(){
+      const map = [
+        ['#brandNameEl','brandName'],
+        ['#brandSubEl','brandSub'],
+        ['#billToBlock','billTo'],
+        ['#fromBlock','from'],
+        ['#invNumber','number'],
+        ['#invDate','date'],
+        ['#dueDate','due'],
+        ['#statusTag','status'],
+      ];
+      map.forEach(([sel,key])=>{
+        const el = $(sel);
+        el.oninput = debounce(()=>{
+          State.current.header[key] = el.innerText.trim();
+          autosave();
+          renderSidebar($('#searchInput').value);
+        }, 200);
+      });
+      $('#paidMoney').oninput = debounce(()=>{
+        State.current.paid = parseMoney($('#paidMoney').innerText, State.current.currency);
+        recalcTotals(); autosave();
+      }, 200);
+    }
 
-  const bbox = paper.getBoundingClientRect();
-  const scale = 2; // retina
-  const svg = `
-<svg xmlns="http://www.w3.org/2000/svg" width="${Math.ceil(bbox.width*scale)}" height="${Math.ceil(bbox.height*scale)}">
-  <foreignObject width="100%" height="100%">
-    <div xmlns="http://www.w3.org/1999/xhtml" style="width:${bbox.width}px;height:${bbox.height}px; transform: scale(${scale}); transform-origin: top left; background:white;">
-      <style>${css}</style>
-      ${html}
-    </div>
-  </foreignObject>
-</svg>`.trim();
+    function renderRow(it, idx){
+      const tr = document.createElement('tr');
+      tr.className='row'; tr.dataset.idx = idx;
+      tr.innerHTML = `
+        <td contenteditable="true" data-k="job">${escapeHTML(it.job||'')}</td>
+        <td contenteditable="true" data-k="date">${escapeHTML(it.date||'')}</td>
+        <td contenteditable="true" class="num" data-k="hours">${(it.hours ?? '').toString()}</td>
+        <td contenteditable="true" class="num" data-k="rate">${(it.rate ?? '').toString()}</td>
+        <td contenteditable="true" class="num" data-k="amount">${(it.amount ?? '').toString()}</td>
+        <td contenteditable="true" data-k="desc">${escapeHTML(it.desc||'')}</td>
+        <td class="no-print" style="text-align:right"><button data-act="del" type="button" style="border:0;background:transparent;cursor:pointer;font-weight:700">✕</button></td>
+      `;
+      tr.querySelectorAll('[contenteditable="true"]').forEach(td=>{
+        td.addEventListener('input', debounce(()=>{
+          const k = td.dataset.k;
+          let v = td.innerText.trim();
+          if(['hours','rate','amount'].includes(k)) v = Number(v)||0;
+          const row = State.current.items[Number(tr.dataset.idx)];
+          row[k] = v;
 
-  const svgBlob = new Blob([svg], {type:'image/svg+xml'});
-  const url = URL.createObjectURL(svgBlob);
-  const img = new Image();
-  img.onload = ()=>{
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.ceil(bbox.width*scale);
-    canvas.height = Math.ceil(bbox.height*scale);
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0,0,canvas.width, canvas.height);
-    ctx.drawImage(img, 0, 0);
-    canvas.toBlob(blob=>{
+          if(k==='hours' || k==='rate'){
+            if(!('manual' in row) || row.manual!==true){
+              row.amount = Number(row.hours||0) * Number(row.rate||0);
+              tr.querySelector('[data-k="amount"]').innerText = String(row.amount||0);
+            }
+          }
+          if(k==='amount'){ row.manual = true; }
+          recalcTotals(); autosave();
+        }, 150));
+      });
+      tr.querySelector('[data-act="del"]').addEventListener('click', ()=>{
+        const ix = Number(tr.dataset.idx);
+        State.current.items.splice(ix,1);
+        const body = $('#itemsBody'); body.innerHTML='';
+        State.current.items.forEach((row, j)=> body.appendChild(renderRow(row, j)));
+        recalcTotals(); autosave();
+      });
+      return tr;
+    }
+
+    /* ========== Add Item ========== */
+    function wireAdder(){
+      $('#a_date').value = todayISO();
+      const add = ()=>{
+        const job = $('#a_job').value.trim();
+        const date = $('#a_date').value || todayISO();
+        const hours = Number($('#a_hours').value)||0;
+        const rate  = Number($('#a_rate').value)||0;
+        const rawAmt = $('#a_amount').value;
+        const desc = $('#a_desc').value.trim();
+
+        // Minimal validation
+        ['#a_job','#a_date'].forEach(sel=> $(sel).classList.remove('field-warn'));
+        let hasErr = false;
+        if(!job){ $('#a_job').classList.add('field-warn'); hasErr=true; }
+        if(!date){ $('#a_date').classList.add('field-warn'); hasErr=true; }
+        if(hasErr) return;
+
+        const amount = rawAmt!=='' ? (Number(rawAmt)||0) : (hours*rate);
+        const item = { job, date, hours, rate, amount, desc, manual: rawAmt!=='' };
+
+        State.current.items.push(item);
+        $('#itemsBody').appendChild(renderRow(item, State.current.items.length-1));
+        recalcTotals(); autosave();
+
+        // Clear for next entry
+        $('#a_job').value=''; $('#a_hours').value=''; $('#a_rate').value=''; $('#a_amount').value=''; $('#a_desc').value='';
+        $('#a_date').value = todayISO();
+        $('#a_job').focus();
+      };
+      $('#a_add').addEventListener('click', add);
+      // Press Enter in amount or desc to add quickly
+      ['#a_amount','#a_desc'].forEach(sel=>{
+        $(sel).addEventListener('keydown', (e)=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); add(); } });
+      });
+    }
+
+    /* ========== Toolbar ========== */
+    function wireToolbar(){
+      $('#templateSel').addEventListener('change', (e)=>{
+        State.current.template = e.target.value;
+        $('#invoiceRoot').className = 'invoice ' + State.current.template;
+        autosave();
+      });
+      $('#currencyInput').addEventListener('input', debounce((e)=>{
+        State.current.currency = e.target.value || '$';
+        recalcTotals(); autosave();
+      }, 120));
+      $('#taxInput').addEventListener('input', debounce((e)=>{
+        State.current.tax = Number(e.target.value)||0;
+        $('#taxPct').innerText = State.current.tax;
+        recalcTotals(); autosave();
+      }, 120));
+
+      $('#printBtn').addEventListener('click', ()=> window.print());
+      $('#pngBtn').addEventListener('click', ()=> exportPNG());
+      $('#jsonBtn').addEventListener('click', ()=> exportJSON());
+      $('#importBtn').addEventListener('click', ()=> importJSON());
+
+      $('#renameInput').addEventListener('input', debounce((e)=>{
+        State.current.name = e.target.value || 'Untitled';
+        autosave(); renderSidebar($('#searchInput').value);
+      }, 150));
+
+      $('#saveBtn').addEventListener('click', ()=> { autosave(true); flashSaved(); });
+    }
+
+    /* ========== Totals ========== */
+    function recalcTotals(){
+      const cur = State.current;
+      const sym = cur.currency || '$';
+      const subtotal = (cur.items||[]).reduce((a,b)=> a + (Number(b.amount)||0), 0);
+      const taxAmt = subtotal * (Number(cur.tax)||0) / 100;
+      const total = subtotal + taxAmt;
+      const paid = Number(cur.paid)||0;
+      const due = total - paid;
+
+      $('#subtotalMoney').innerText = fmtMoney(subtotal, sym);
+      $('#taxMoney').innerText = fmtMoney(taxAmt, sym);
+      $('#totalMoney').innerText = fmtMoney(total, sym);
+      $('#dueMoney').innerHTML = `<strong>${fmtMoney(due, sym)}</strong>`;
+    }
+
+    /* ========== Save / Export / Import ========== */
+    function autosave(){
+      // Mirror header from DOM
+      State.current.header = {
+        ...State.current.header,
+        billTo: $('#billToBlock').innerText.trim(),
+        from:   $('#fromBlock').innerText.trim(),
+        number: $('#invNumber').innerText.trim(),
+        date:   $('#invDate').innerText.trim(),
+        due:    $('#dueDate').innerText.trim(),
+        status: $('#statusTag').innerText.trim(),
+        brandName: $('#brandNameEl').innerText.trim(),
+        brandSub:  $('#brandSubEl').innerText.trim(),
+      };
+      State.current.paid = parseMoney($('#paidMoney').innerText, State.current.currency);
+
+      // Persist
+      State.invoices = State.invoices.map(x=> x.id===State.current.id ? State.current : x);
+      Store.writeAll(State.invoices);
+      Store.writeOpen(State.current.id);
+    }
+
+    function exportJSON(){
+      autosave();
+      const data = JSON.stringify(State.current, null, 2);
+      const blob = new Blob([data], {type:'application/json'});
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      const inv = getCurrent();
-      a.download = `invoice-${(inv?.number||'')}.png`;
+      a.download = (State.current.name || 'invoice') + '.json';
       a.click();
-      URL.revokeObjectURL(a.href);
-      URL.revokeObjectURL(url);
-    }, 'image/png', 0.96);
-  };
-  img.onerror = ()=> { URL.revokeObjectURL(url); alert('PNG export failed. Try Print→PDF if needed.'); };
-  img.src = url;
-}
+      setTimeout(()=> URL.revokeObjectURL(a.href), 1500);
+    }
 
-function minimalInlinePaperColors(paper){
-  // mirror key colors for export reliability across dark mode/templates
-  const styles = getComputedStyle(paper);
-  const text = styles.color || '#111';
-  const bg = '#ffffff';
-  return `
-#invoicePaper{ background:${bg}; color:${text}; }
-#invoicePaper .card{ background:#fff; }
-#invoicePaper .row-btn svg{ stroke:${text}; }`;
-}
+    function importJSON(){
+      const inp = document.createElement('input');
+      inp.type='file'; inp.accept='.json,application/json';
+      inp.onchange = ()=>{
+        const file = inp.files[0]; if(!file) return;
+        const reader = new FileReader();
+        reader.onload = ()=>{
+          try{
+            const obj = JSON.parse(reader.result);
+            if(!obj.id) obj.id = uid();
+            State.invoices.unshift(obj);
+            Store.writeAll(State.invoices);
+            openInvoice(obj.id);
+            renderSidebar($('#searchInput').value);
+          }catch(e){ alert('Invalid JSON.'); }
+        };
+        reader.readAsText(file);
+      };
+      inp.click();
+    }
 
-/* ---- Helpers ---- */
-function oneLine(s){ return (s||'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean)[0] || ''; }
-function escapeHtml(s=''){ return s.replace(/[&<>"]/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' })[c]); }
+    async function exportPNG(){
+      try{
+        autosave();
+        const node = $('#invoiceRoot');
+        const css = collectStyles();
 
-function nextNumberGuess(){
-  // simple guess: max existing + 1 preserving length
-  const nums = state.invoices.map(x => parseInt(x.number,10)).filter(n=>!isNaN(n));
-  const max = nums.length ? Math.max(...nums) : 0;
-  const len = (state.invoices[0]?.number || '0001').length;
-  return String(max+1).padStart(len, '0');
-}
+        // Clone invoice and inline styles + images
+        const clone = node.cloneNode(true);
+        await inlineImages(clone);
 
-/* ---- Sidebar open/close (mobile) ---- */
-const sideEl = $('#sidebar'); const sideOverlay = $('#sideOverlay');
-$('#openSide').addEventListener('click', ()=>{ sideEl.classList.add('open'); sideOverlay.classList.add('show'); });
-$('#closeSide').addEventListener('click', closeSidebar);
-sideOverlay.addEventListener('click', closeSidebar);
-function closeSidebar(){ sideEl.classList.remove('open'); sideOverlay.classList.remove('show'); }
+        const wrapper = document.createElement('div');
+        wrapper.setAttribute('xmlns','http://www.w3.org/1999/xhtml');
+        const style = document.createElement('style');
+        style.textContent = css;
+        wrapper.appendChild(style);
+        wrapper.appendChild(clone);
 
-/* ---- Splash handling ---- */
-$('#startBtn').addEventListener('click', ()=>{
-  $('#splash').style.display = 'none';
-  $('#app').style.display = 'grid';
-});
+        const rect = node.getBoundingClientRect();
+        const w = Math.ceil(rect.width);
+        const h = Math.ceil(rect.height);
 
-/* ---- App init ---- */
-load();
-if (!state.invoices.length){
-  createInvoice({
-    number: '0001',
-    title: 'INVOICE',
-    items: [
-      { id: uid(), job: 'Design & Layout', date: new Date().toISOString().slice(0,10), hours: 5, rate: 120, amount: 600, description: 'Homepage hero + product cards' }
-    ],
-    notes: 'Thank you for your business!'
-  });
-} else {
-  // ensure UI renders list & current
-  renderSidebar();
-  if (!state.selectedId) state.selectedId = state.invoices[0].id;
-  renderInvoice();
-}
-bindContenteditable();
+        const svg =
+          `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">
+             <foreignObject x="0" y="0" width="100%" height="100%">
+               ${new XMLSerializer().serializeToString(wrapper)}
+             </foreignObject>
+           </svg>`;
 
-/* ---- Sidebar click selection update (ensure active state) ---- */
-document.addEventListener('click', ()=>{
-  $$('.inv-row').forEach(r => r.classList.toggle('active', r.dataset.id === state.selectedId));
-});
+        const svgBlob = new Blob([svg], {type:'image/svg+xml;charset=utf-8'});
+        const svgUrl = URL.createObjectURL(svgBlob);
+        const dataUrl = await svgToPngUrl(svgUrl, w, h);
 
-</script>
+        const a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = (State.current.name || 'invoice') + '.png';
+        a.click();
+
+        setTimeout(()=> URL.revokeObjectURL(svgUrl), 2000);
+        setTimeout(()=> URL.revokeObjectURL(dataUrl), 4000);
+      }catch(err){
+        console.error(err);
+        alert('PNG export failed. Tip: ensure logo1.png exists next to index.html.');
+      }
+    }
+
+    function collectStyles(){
+      let css = '';
+      document.querySelectorAll('style').forEach(s=> css += s.textContent + '\n');
+      return css;
+    }
+
+    async function inlineImages(root){
+      const imgs = root.querySelectorAll('img');
+      for(const img of imgs){
+        const src = img.getAttribute('src');
+        if(!src) continue;
+        try{
+          // Same-origin fetch (GitHub Pages: same repo)
+          const res = await fetch(src, {cache:'force-cache'});
+          const blob = await res.blob();
+          const dataUrl = await blobToDataURL(blob);
+          img.setAttribute('src', dataUrl);
+        }catch(e){ /* ignore; keep original src */ }
+      }
+    }
+    function blobToDataURL(blob){
+      return new Promise((res,rej)=>{
+        const fr = new FileReader();
+        fr.onload = ()=> res(fr.result);
+        fr.onerror = rej;
+        fr.readAsDataURL(blob);
+      });
+    }
+    function svgToPngUrl(svgUrl, w, h){
+      return new Promise((res, rej)=>{
+        const img = new Image();
+        img.onload = ()=>{
+          const canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+          canvas.toBlob((blob)=>{
+            if(!blob) return rej(new Error('PNG blob failed'));
+            res(URL.createObjectURL(blob));
+          }, 'image/png', 1.0);
+        };
+        img.onerror = rej;
+        img.src = svgUrl;
+      });
+    }
+
+    /* ========== Helpers ========== */
+    function escapeHTML(s=''){ return s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+    function flashSaved(){
+      const btn = $('#saveBtn');
+      const prev = btn.textContent;
+      btn.textContent = 'Saved ✓';
+      setTimeout(()=> btn.textContent = prev, 1200);
+    }
+
+    /* ========== Autofill for first load ========== */
+    (function initialAutofill(){
+      $('#autoID').innerText = uid().slice(-6).toUpperCase();
+      $('#autoDate').innerText = todayISO();
+      $('#autoDue').innerText  = addDaysISO(15);
+    })();
+
+    /* ========== Keyboard niceties ========== */
+    document.addEventListener('keydown', (e)=>{
+      if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==='s'){ e.preventDefault(); autosave(); flashSaved(); }
+      if(e.key==='Escape'){ $('#sidebar').classList.remove('open'); }
+    });
+  </script>
 </body>
 </html>
