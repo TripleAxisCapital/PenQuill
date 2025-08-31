@@ -9,19 +9,19 @@
 <style id="base-css">
 /* =========================
    Lola’s Pen & Quill — Single-file App
-   (Mobile/iPad polish only; features unchanged)
+   (Edited per your latest spec)
    ========================= */
 
 /* ----- Reset / base ----- */
 * { box-sizing: border-box; }
-html, body { height: 100%; margin: 0; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+html, body { height: 100%; margin: 0; }
 :root{
   --bg: #f5f5f7;
   --panel: rgba(255,255,255,0.7);
   --panel-stroke: rgba(0,0,0,0.08);
   --text: #0b0b0b;
   --muted: #6b7280;
-  --accent: #0071e3; /* base accent used by templates */
+  --accent: #0071e3; /* base accent used by templates, no control shown */
   --shadow: 0 10px 30px rgba(0,0,0,0.10);
   --radius: 16px;
   --paper-width: 8.5in;   /* for print */
@@ -29,14 +29,6 @@ html, body { height: 100%; margin: 0; -webkit-font-smoothing: antialiased; -moz-
   --screen-paper-w: 816px; /* ~8.5in at 96dpi for screen preview */
   --paper-padding: 28px;
   --sidebar-w: 320px;
-
-  /* Mobile-friendly sizes */
-  --tap: 44px;
-  --gap: 10px;
-}
-
-@media (max-width: 640px){
-  :root{ --paper-padding: 18px; --gap: 12px; }
 }
 
 /* Dark mode tuning */
@@ -94,7 +86,7 @@ body {
   display: inline-grid; place-items: center; font-weight: 600;
   padding: 14px 22px; border-radius: 999px; border: 0;
   font-size: 16px; color: white; cursor: pointer;
-  margin: 0 auto; width: 180px; min-height: var(--tap);
+  margin: 0 auto; width: 180px;
   background: conic-gradient(from 0deg, #0a84ff, #30d158, #ff9f0a, #ff375f, #0a84ff);
   background-size: 200% 200%;
   animation: glow 6s ease infinite;
@@ -124,7 +116,7 @@ body {
 }
 .hamburger{
   display: none;
-  background: transparent; border: 0; width: var(--tap); height: var(--tap); border-radius: 10px;
+  background: transparent; border: 0; width: 36px; height: 36px; border-radius: 10px;
   cursor: pointer;
 }
 .hamburger svg { width: 22px; height: 22px; stroke: var(--text); }
@@ -138,7 +130,6 @@ body {
 .icon-btn{
   background: transparent; border: 1px solid var(--panel-stroke);
   border-radius: 10px; padding: 8px; display: inline-grid; place-items: center; cursor: pointer;
-  min-width: var(--tap); min-height: var(--tap);
 }
 .icon-btn:hover{ background: rgba(0,0,0,0.04); }
 @media (prefers-color-scheme: dark) {
@@ -148,8 +139,8 @@ body {
 
 .side-search{ padding: 10px 14px; border-bottom: 1px solid var(--panel-stroke); }
 .side-search input{
-  width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--panel-stroke);
-  background: rgba(255,255,255,0.5); color: var(--text); outline: none; font-size: 15px; min-height: var(--tap);
+  width: 100%; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--panel-stroke);
+  background: rgba(255,255,255,0.5); color: var(--text); outline: none;
 }
 @media (prefers-color-scheme: dark) {
   .side-search input{ background: rgba(20,20,22,0.5); }
@@ -166,35 +157,34 @@ body {
 .inv-meta{ display: grid; gap: 2px; }
 .inv-title{ font-weight: 600; font-size: 14px; letter-spacing: -0.01em; }
 .inv-sub{ color: var(--muted); font-size: 12px; }
-.inv-row .row-actions{ display: flex; gap: 6px; opacity: 0.7; }
+.inv-row .row-actions{ display: flex; gap: 6px; opacity: 0.6; }
 .inv-row .row-actions .icon-btn{ padding: 6px; }
 
 .main{
   padding: 18px 18px 28px; display: grid; gap: 14px;
 }
 .toolbar{
-  display: flex; flex-wrap: wrap; gap: var(--gap); align-items: center;
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
   border: 1px solid var(--panel-stroke); border-radius: 14px; padding: 10px;
   background: linear-gradient(180deg, var(--panel), transparent);
   backdrop-filter: saturate(180%) blur(14px);
 }
-.tool-group{ display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.tool-group{ display: flex; gap: 8px; align-items: center; }
 .tool-label{ color: var(--muted); font-size: 12px; }
-
 .select, .text, .num, .color, .chk{
   appearance: none; -webkit-appearance: none; -moz-appearance: none;
-  padding: 12px 14px; border-radius: 12px; border: 1px solid var(--panel-stroke);
-  background: rgba(255,255,255,0.5); color: var(--text); outline: none; font-size: 15px; min-height: var(--tap);
+  padding: 10px 12px; border-radius: 12px; border: 1px solid var(--panel-stroke);
+  background: rgba(255,255,255,0.5); color: var(--text); outline: none; font-size: 14px;
 }
-.chk{ display: inline-flex; align-items: center; gap: 8px; padding: 10px 12px; }
-.chk input{ width: 18px; height: 18px; accent-color: #0a84ff; }
-.rate{ width: 90px; text-align: right; }
+.chk{ display: inline-flex; align-items: center; gap: 6px; padding: 8px 10px; }
+.chk input{ width: 16px; height: 16px; accent-color: #0a84ff; }
+.rate{ width: 80px; text-align: right; }
 @media (prefers-color-scheme: dark) {
   .select, .text, .num, .color, .chk { background: rgba(20,20,22,0.5); }
 }
 .btn{
-  padding: 12px 16px; border-radius: 12px; border: 1px solid var(--panel-stroke);
-  background: rgba(255,255,255,0.7); color: var(--text); cursor: pointer; font-weight: 600; min-height: var(--tap);
+  padding: 10px 14px; border-radius: 12px; border: 1px solid var(--panel-stroke);
+  background: rgba(255,255,255,0.7); color: var(--text); cursor: pointer; font-weight: 600;
 }
 .btn:hover{ background: rgba(255,255,255,0.9); }
 @media (prefers-color-scheme: dark){
@@ -207,26 +197,18 @@ body {
 .btn.danger{ border-color: #ef4444; color: #ef4444; }
 .btn.ghost{ background: transparent; }
 
-/* Quick-add with visible labels for mobile/iPad */
 .quick-add{
-  display: grid; grid-template-columns: repeat(5, 1fr) auto; gap: 10px; align-items: end;
-}
-.field{ display: grid; gap: 6px; }
-.field > .fld-label{
-  font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted);
+  display: grid; grid-template-columns: repeat(5, 1fr) auto; gap: 8px; align-items: center;
 }
 @media (max-width: 1100px){
   .quick-add{ grid-template-columns: 1fr 1fr; }
 }
-@media (max-width: 640px){
-  .quick-add{ grid-template-columns: 1fr; }
-}
 .quick-add .btn{ white-space: nowrap; }
 
 /* ----- Paper (screen) ----- */
-.paper-wrap{ display: grid; place-items: start center; padding-bottom: 16px; }
+.paper-wrap{ display: grid; place-items: start center; }
 #invoicePaper{
-  width: min(var(--screen-paper-w), 100%);
+  width: var(--screen-paper-w);
   background: white;
   color: #111;
   border-radius: 18px;
@@ -246,13 +228,10 @@ body {
 .inv-header{ display: grid; grid-template-columns: 1fr auto; gap: 14px; align-items: start; }
 .inv-logo{ width: 110px; height: 110px; object-fit: contain; }
 .inv-ids{ text-align: right; display: grid; gap: 6px; }
-.inv-title-edit{ font-size: clamp(22px, 3.2vw, 26px); font-weight: 800; letter-spacing: -0.02em; }
+.inv-title-edit{ font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
 
 /* Parties */
 .parties{ display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-@media (max-width: 640px){
-  .parties{ grid-template-columns: 1fr; }
-}
 .card{
   border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; padding: 12px;
   background: linear-gradient(180deg, #fff, #fafafa);
@@ -265,7 +244,7 @@ body {
 .items tbody td{ padding: 8px 6px; border-bottom: 1px solid rgba(0,0,0,0.06); vertical-align: top; }
 .cell-tight{ width: 90px; }
 .cell-actions{ width: 70px; text-align: right; white-space: nowrap; }
-.row-btn{ border: 0; background: transparent; cursor: pointer; padding: 6px; border-radius: 10px; min-width: var(--tap); min-height: var(--tap); }
+.row-btn{ border: 0; background: transparent; cursor: pointer; padding: 4px; border-radius: 8px; }
 .row-btn:hover{ background: rgba(0,0,0,0.06); }
 .row-btn svg{ width: 16px; height: 16px; stroke: #111; }
 
@@ -398,7 +377,7 @@ body {
         </select>
       </div>
 
-      <!-- Tax controls (GST/PST) -->
+      <!-- New tax controls (GST/PST) -->
       <div class="tool-group">
         <label class="chk" title="Apply GST">
           <input type="checkbox" id="gstToggle" />
@@ -418,33 +397,12 @@ body {
       </div>
     </div>
 
-    <!-- Quick Add (now with visible labels) -->
     <div class="quick-add" aria-label="Quick add line item">
-      <label class="field" for="qaJob">
-        <span class="fld-label">Job</span>
-        <input id="qaJob" class="text" placeholder="e.g., Design & Layout" />
-      </label>
-
-      <label class="field" for="qaDate">
-        <span class="fld-label">Date</span>
-        <input id="qaDate" class="text" type="date" />
-      </label>
-
-      <label class="field" for="qaHours">
-        <span class="fld-label">Hours</span>
-        <input id="qaHours" class="num" type="number" step="0.01" inputmode="decimal" placeholder="e.g., 5" />
-      </label>
-
-      <label class="field" for="qaRate">
-        <span class="fld-label">Rate</span>
-        <input id="qaRate" class="num" type="number" step="0.01" inputmode="decimal" placeholder="e.g., 120" />
-      </label>
-
-      <label class="field" for="qaDesc">
-        <span class="fld-label">Description</span>
-        <input id="qaDesc" class="text" placeholder="Optional details" />
-      </label>
-
+      <input id="qaJob" class="text" placeholder="Job / Item name" />
+      <input id="qaDate" class="text" type="date" />
+      <input id="qaHours" class="num" type="number" step="0.01" placeholder="Hours" />
+      <input id="qaRate" class="num" type="number" step="0.01" placeholder="Rate" />
+      <input id="qaDesc" class="text" placeholder="Description" />
       <button id="qaAdd" class="btn">Add</button>
     </div>
 
@@ -463,7 +421,7 @@ body {
                 <div class="v" contenteditable="true" data-bind="number">0001</div>
                 <div class="k">Date</div>
                 <div class="v" contenteditable="true" data-bind="date">2025-08-31</div>
-                <!-- Due removed per earlier spec -->
+                <!-- Due removed per spec -->
               </div>
             </div>
           </div>
@@ -528,13 +486,13 @@ body {
 
 <script>
 /* ==============================
-   Lola’s Pen & Quill App Logic (unchanged functionality)
+   Lola’s Pen & Quill App Logic (edited)
    ============================== */
 
 const $ = (sel, el=document) => el.querySelector(sel);
 const $$ = (sel, el=document) => Array.from(el.querySelectorAll(sel));
 
-const STORAGE_KEY = 'lpq_invoices_v2';
+const STORAGE_KEY = 'lpq_invoices_v2'; // bump storage key because structure changed
 const STORAGE_SEL = 'lpq_selected_id_v2';
 
 const state = {
@@ -557,18 +515,23 @@ function load(){
     const sel = localStorage.getItem(STORAGE_SEL);
     if (sel) state.selectedId = sel;
 
+    // Migrate from old storage if v2 absent
     if (!raw){
       const old = localStorage.getItem('lpq_invoices_v1');
       const oldSel = localStorage.getItem('lpq_selected_id_v1');
       if (old){
         const parsed = JSON.parse(old);
+        // add new fields with defaults
         parsed.forEach(inv=>{
           inv.gstEnabled = inv.gstEnabled ?? false;
           inv.gstRate = inv.gstRate ?? 5;
           inv.pstEnabled = inv.pstEnabled ?? false;
           inv.pstRate = inv.pstRate ?? 7;
+          // remove obsolete discount if present
           delete inv.discount;
+          // keep currency if present, else default '$'
           inv.currency = inv.currency || '$';
+          // drop dueDate display (keep data if user had it)
         });
         state.invoices = parsed;
         state.selectedId = oldSel || parsed[0]?.id || null;
@@ -598,6 +561,7 @@ function createInvoice(opts={}){
     to: opts.to || 'Client Name\nclient@company.com\n1 Infinite Loop, Cupertino, CA',
     notes: opts.notes || '',
     currency: opts.currency || '$',
+    // New tax fields
     gstEnabled: opts.gstEnabled ?? false,
     gstRate: Number(opts.gstRate ?? 5),
     pstEnabled: opts.pstEnabled ?? false,
@@ -710,25 +674,31 @@ function renderInvoice(){
   const inv = getCurrent();
   if (!inv){ return; }
 
+  // Template + accent
   const paper = $('#invoicePaper');
   paper.className = inv.template || 'tpl-classic';
   paper.style.setProperty('--tpl-accent', inv.accent || '#0071e3');
 
+  // Header binds (Due removed)
   $('[data-bind="title"]').innerText = inv.title || 'INVOICE';
   $('[data-bind="number"]').innerText = inv.number || '';
   $('[data-bind="date"]').innerText = inv.date || '';
 
+  // Parties
   $('[data-bind="from"]').innerText = inv.from || '';
   $('[data-bind="to"]').innerText = inv.to || '';
 
+  // Notes
   $('#notesArea').value = inv.notes || '';
 
+  // Controls: templates and tax toggles
   $('#tplSelect').value = inv.template || 'tpl-classic';
   $('#gstToggle').checked = !!inv.gstEnabled;
   $('#pstToggle').checked = !!inv.pstEnabled;
   $('#gstRate').value = Number(inv.gstRate ?? 5);
   $('#pstRate').value = Number(inv.pstRate ?? 7);
 
+  // Items
   const tb = $('#itemsBody');
   tb.innerHTML = '';
   inv.items.forEach((it, idx)=> tb.appendChild(renderRow(it, idx)));
@@ -738,9 +708,11 @@ function renderInvoice(){
 
 function renderTotals(inv){
   const cur = inv.currency || '$';
+  // Ensure amounts computed (guard against legacy data)
   inv.items = inv.items.map(forceComputedAmount);
 
   const sub = inv.items.reduce((s, it)=> s + (Number(it.amount)||0), 0);
+
   const gst = inv.gstEnabled ? sub * (Number(inv.gstRate||0)/100) : 0;
   const pst = inv.pstEnabled ? sub * (Number(inv.pstRate||0)/100) : 0;
   const total = sub + gst + pst;
@@ -761,7 +733,7 @@ function renderTotals(inv){
 /* ---- Row rendering & editing ---- */
 function renderRow(it, idx){
   const computed = (Number(it.hours)||0) * (Number(it.rate)||0);
-  it.amount = computed;
+  it.amount = computed; // keep state consistent
 
   const tr = document.createElement('tr');
   tr.dataset.id = it.id;
@@ -805,6 +777,8 @@ function onCellEdit(e){
       it[field] = v;
     }
   });
+
+  // after updateInvoice, totals re-rendered via renderTotals(inv) inside updateInvoice
 }
 
 function onRowAction(e){
@@ -912,6 +886,7 @@ $('#importBtn').addEventListener('click', ()=>{
       const obj = JSON.parse(text);
       obj.id = uid(); obj.createdAt = nowISO(); obj.updatedAt = nowISO();
       if (!obj.items) obj.items = [];
+      // Default the new tax fields if missing
       obj.gstEnabled = obj.gstEnabled ?? false;
       obj.gstRate = Number(obj.gstRate ?? 5);
       obj.pstEnabled = obj.pstEnabled ?? false;
