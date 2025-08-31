@@ -4,12 +4,17 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Lola’s Pen & Quill — Invoices</title>
-<meta name="description" content="Lola’s Pen & Quill — beautiful, Apple-style invoices. Add items fast, edit inline, save in a sidebar, and export to PDF." />
+<meta name="description" content="Lola’s Pen & Quill — beautiful, Apple-style invoices. Add items fast, edit inline, save in a sidebar, and export to PDF/PNG." />
 <meta name="color-scheme" content="light dark" />
 <style id="base-css">
 /* =========================
    Lola’s Pen & Quill — Single-file App
-   (Edited per your latest spec)
+   Author: ChatGPT (GPT-5 Thinking)
+   Notes:
+   - No frameworks. All vanilla.
+   - LocalStorage for persistence.
+   - Print CSS gives crisp PDFs.
+   - PNG export uses SVG foreignObject capture with inline CSS.
    ========================= */
 
 /* ----- Reset / base ----- */
@@ -21,7 +26,7 @@ html, body { height: 100%; margin: 0; }
   --panel-stroke: rgba(0,0,0,0.08);
   --text: #0b0b0b;
   --muted: #6b7280;
-  --accent: #0071e3; /* base accent used by templates, no control shown */
+  --accent: #0071e3; /* Apple-ish blue */
   --shadow: 0 10px 30px rgba(0,0,0,0.10);
   --radius: 16px;
   --paper-width: 8.5in;   /* for print */
@@ -171,16 +176,13 @@ body {
 }
 .tool-group{ display: flex; gap: 8px; align-items: center; }
 .tool-label{ color: var(--muted); font-size: 12px; }
-.select, .text, .num, .color, .chk{
+.select, .text, .num, .color{
   appearance: none; -webkit-appearance: none; -moz-appearance: none;
   padding: 10px 12px; border-radius: 12px; border: 1px solid var(--panel-stroke);
   background: rgba(255,255,255,0.5); color: var(--text); outline: none; font-size: 14px;
 }
-.chk{ display: inline-flex; align-items: center; gap: 6px; padding: 8px 10px; }
-.chk input{ width: 16px; height: 16px; accent-color: #0a84ff; }
-.rate{ width: 80px; text-align: right; }
 @media (prefers-color-scheme: dark) {
-  .select, .text, .num, .color, .chk { background: rgba(20,20,22,0.5); }
+  .select, .text, .num, .color { background: rgba(20,20,22,0.5); }
 }
 .btn{
   padding: 10px 14px; border-radius: 12px; border: 1px solid var(--panel-stroke);
@@ -198,7 +200,7 @@ body {
 .btn.ghost{ background: transparent; }
 
 .quick-add{
-  display: grid; grid-template-columns: repeat(5, 1fr) auto; gap: 8px; align-items: center;
+  display: grid; grid-template-columns: repeat(6, 1fr) auto; gap: 8px; align-items: center;
 }
 @media (max-width: 1100px){
   .quick-add{ grid-template-columns: 1fr 1fr; }
@@ -250,12 +252,18 @@ body {
 
 /* Totals */
 .totals{
-  margin-left: auto; width: min(420px, 100%); display: grid; gap: 6px;
+  margin-left: auto; width: min(360px, 100%); display: grid; gap: 8px;
 }
 .tline{ display: flex; justify-content: space-between; align-items: baseline; }
 .tline .lbl{ color: #6b7280; }
 .tline .val{ font-variant-numeric: tabular-nums; }
 .tline.total{ border-top: 1px dashed rgba(0,0,0,0.2); padding-top: 8px; font-weight: 800; font-size: 20px; }
+
+/* Notes / terms */
+.notes textarea{
+  width: 100%; min-height: 80px; resize: vertical; padding: 10px 12px;
+  border-radius: 12px; border: 1px solid rgba(0,0,0,0.1);
+}
 
 /* ----- Templates (apply on #invoicePaper) ----- */
 #invoicePaper{ --tpl-accent: var(--accent); }
@@ -298,13 +306,11 @@ body {
   .side-overlay{ display: block; position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(2px); z-index: 20; opacity: 0; pointer-events: none; transition: opacity 220ms ease; }
   .side-overlay.show{ opacity: 1; pointer-events: auto; }
 }
-
-/* Utility */
-.hidden{ display:none !important; }
 </style>
 
-<!-- Dedicated CSS for the invoice area -->
+<!-- Dedicated CSS for the invoice area (also injected into PNG export) -->
 <style id="invoice-css">
+/* Keep this focused on elements inside #invoicePaper only */
 #invoicePaper, #invoicePaper * { box-sizing: border-box; }
 #invoicePaper .paper-inner{ font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial; }
 #invoicePaper .inv-header .inv-ids .kv{ display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; align-items: baseline; }
@@ -375,23 +381,21 @@ body {
           <option value="tpl-elegant">Elegant Serif</option>
           <option value="tpl-dark">Dark Pro</option>
         </select>
+        <label class="tool-label" for="accentColor">Accent</label>
+        <input id="accentColor" class="color" type="color" value="#0071e3" title="Template accent" />
       </div>
 
-      <!-- New tax controls (GST/PST) -->
       <div class="tool-group">
-        <label class="chk" title="Apply GST">
-          <input type="checkbox" id="gstToggle" />
-          <span>GST</span>
-        </label>
-        <input id="gstRate" class="num rate" type="number" step="0.01" value="5" title="GST %" />
-        <label class="chk" title="Apply PST">
-          <input type="checkbox" id="pstToggle" />
-          <span>PST</span>
-        </label>
-        <input id="pstRate" class="num rate" type="number" step="0.01" value="7" title="PST %" />
+        <span class="tool-label">Currency</span>
+        <input id="currencySym" class="text" style="width:70px" value="$" maxlength="3" />
+        <span class="tool-label">Tax %</span>
+        <input id="taxRate" class="num" type="number" step="0.01" value="0" style="width:90px" />
+        <span class="tool-label">Discount</span>
+        <input id="discount" class="num" type="number" step="0.01" value="0" style="width:110px" placeholder="e.g. 25 or 25%" title="Absolute (25) or percent (25%)"/>
       </div>
 
       <div class="tool-group" style="margin-left:auto;">
+        <button class="btn" id="pngBtn" title="Export PNG">Save PNG</button>
         <button class="btn primary" id="pdfBtn" title="Print or Save as PDF">Print / PDF</button>
         <button class="btn danger" id="deleteBtn" title="Delete invoice">Delete</button>
       </div>
@@ -402,6 +406,7 @@ body {
       <input id="qaDate" class="text" type="date" />
       <input id="qaHours" class="num" type="number" step="0.01" placeholder="Hours" />
       <input id="qaRate" class="num" type="number" step="0.01" placeholder="Rate" />
+      <input id="qaAmount" class="num" type="number" step="0.01" placeholder="Amount (auto if empty)" />
       <input id="qaDesc" class="text" placeholder="Description" />
       <button id="qaAdd" class="btn">Add</button>
     </div>
@@ -412,7 +417,7 @@ body {
           <!-- Header -->
           <div class="inv-header">
             <div>
-              <img src="logo2.png" alt="Logo" class="inv-logo" onerror="this.style.opacity=0.15" />
+              <img src="logo1.png" alt="Logo" class="inv-logo" onerror="this.style.opacity=0.15" />
               <div class="inv-title-edit" contenteditable="true" data-bind="title">INVOICE</div>
             </div>
             <div class="inv-ids">
@@ -421,7 +426,8 @@ body {
                 <div class="v" contenteditable="true" data-bind="number">0001</div>
                 <div class="k">Date</div>
                 <div class="v" contenteditable="true" data-bind="date">2025-08-31</div>
-                <!-- Due removed per spec -->
+                <div class="k">Due</div>
+                <div class="v" contenteditable="true" data-bind="dueDate">Net 15</div>
               </div>
             </div>
           </div>
@@ -469,9 +475,9 @@ body {
           <!-- Totals -->
           <div class="totals">
             <div class="tline"><div class="lbl">Subtotal</div><div class="val" id="subtotalVal">$0.00</div></div>
-            <div class="tline hidden" id="gstLine"><div class="lbl" id="gstLbl">GST</div><div class="val" id="gstVal">$0.00</div></div>
-            <div class="tline hidden" id="pstLine"><div class="lbl" id="pstLbl">PST</div><div class="val" id="pstVal">$0.00</div></div>
-            <div class="tline total"><div class="lbl accent">Total</div><div class="val" id="totalVal">$0.00</div></div>
+            <div class="tline"><div class="lbl">Tax</div><div class="val" id="taxVal">$0.00</div></div>
+            <div class="tline"><div class="lbl">Discount</div><div class="val" id="discVal">-$0.00</div></div>
+            <div class="tline total"><div class="lbl accent">Total Due</div><div class="val" id="totalVal">$0.00</div></div>
           </div>
 
           <!-- Notes -->
@@ -486,14 +492,14 @@ body {
 
 <script>
 /* ==============================
-   Lola’s Pen & Quill App Logic (edited)
+   Lola’s Pen & Quill App Logic
    ============================== */
 
 const $ = (sel, el=document) => el.querySelector(sel);
 const $$ = (sel, el=document) => Array.from(el.querySelectorAll(sel));
 
-const STORAGE_KEY = 'lpq_invoices_v2'; // bump storage key because structure changed
-const STORAGE_SEL = 'lpq_selected_id_v2';
+const STORAGE_KEY = 'lpq_invoices_v1';
+const STORAGE_SEL = 'lpq_selected_id_v1';
 
 const state = {
   invoices: [],
@@ -503,9 +509,27 @@ const state = {
 function uid(){ return 'inv_' + Math.random().toString(36).slice(2) + Date.now().toString(36); }
 function nowISO(){ return new Date().toISOString(); }
 
-function fmtMoney(n, sym='$'){
+function fmtMoney(n, sym){
   const v = isFinite(n) ? Number(n) : 0;
+  try {
+    // Try to infer if sym is a currency code (3 letters) vs symbol
+    if (/^[A-Z]{3}$/.test(sym || '')) {
+      return new Intl.NumberFormat(undefined, { style:'currency', currency: sym }).format(v);
+    }
+  } catch(e){}
+  // Symbol prefix
   return (sym || '$') + v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+function parseDiscount(input, base){
+  const s = (input ?? '').toString().trim();
+  if (!s) return 0;
+  if (/%$/.test(s)){ // percentage
+    const p = parseFloat(s.replace('%','')) || 0;
+    return base * (p/100);
+  }
+  const a = parseFloat(s) || 0;
+  return a < 0 ? 0 : a;
 }
 
 function load(){
@@ -514,30 +538,6 @@ function load(){
     if (raw) state.invoices = JSON.parse(raw);
     const sel = localStorage.getItem(STORAGE_SEL);
     if (sel) state.selectedId = sel;
-
-    // Migrate from old storage if v2 absent
-    if (!raw){
-      const old = localStorage.getItem('lpq_invoices_v1');
-      const oldSel = localStorage.getItem('lpq_selected_id_v1');
-      if (old){
-        const parsed = JSON.parse(old);
-        // add new fields with defaults
-        parsed.forEach(inv=>{
-          inv.gstEnabled = inv.gstEnabled ?? false;
-          inv.gstRate = inv.gstRate ?? 5;
-          inv.pstEnabled = inv.pstEnabled ?? false;
-          inv.pstRate = inv.pstRate ?? 7;
-          // remove obsolete discount if present
-          delete inv.discount;
-          // keep currency if present, else default '$'
-          inv.currency = inv.currency || '$';
-          // drop dueDate display (keep data if user had it)
-        });
-        state.invoices = parsed;
-        state.selectedId = oldSel || parsed[0]?.id || null;
-        save();
-      }
-    }
   } catch(e){ console.warn('Load failed', e); }
 }
 
@@ -557,31 +557,24 @@ function createInvoice(opts={}){
     title: opts.title || 'INVOICE',
     number: opts.number || '0001',
     date: opts.date || (new Date().toISOString().slice(0,10)),
+    dueDate: opts.dueDate || 'Net 15',
     from: opts.from || 'Lola’s Pen & Quill\nhello@lola.example\n123 Apple Way, Cupertino, CA',
     to: opts.to || 'Client Name\nclient@company.com\n1 Infinite Loop, Cupertino, CA',
     notes: opts.notes || '',
     currency: opts.currency || '$',
-    // New tax fields
-    gstEnabled: opts.gstEnabled ?? false,
-    gstRate: Number(opts.gstRate ?? 5),
-    pstEnabled: opts.pstEnabled ?? false,
-    pstRate: Number(opts.pstRate ?? 7),
+    taxRate: Number(opts.taxRate ?? 0),
+    discount: opts.discount || '0',
     template: opts.template || 'tpl-classic',
     accent: opts.accent || '#0071e3',
     createdAt: nowISO(),
     updatedAt: nowISO(),
-    items: (opts.items || []).map(forceComputedAmount)
+    items: opts.items || []
   };
   state.invoices.unshift(inv);
   state.selectedId = id;
   save();
   renderSidebar();
   renderInvoice();
-}
-
-function forceComputedAmount(it){
-  const hours = Number(it.hours)||0, rate = Number(it.rate)||0;
-  return { ...it, amount: hours * rate };
 }
 
 function duplicateInvoice(id){
@@ -672,17 +665,20 @@ function renderSidebarMeta(id){
 /* ---- Invoice rendering ---- */
 function renderInvoice(){
   const inv = getCurrent();
-  if (!inv){ return; }
-
+  if (!inv){
+    // nothing selected: maybe create a starter invoice
+    return;
+  }
   // Template + accent
   const paper = $('#invoicePaper');
   paper.className = inv.template || 'tpl-classic';
   paper.style.setProperty('--tpl-accent', inv.accent || '#0071e3');
 
-  // Header binds (Due removed)
+  // Header binds
   $('[data-bind="title"]').innerText = inv.title || 'INVOICE';
   $('[data-bind="number"]').innerText = inv.number || '';
   $('[data-bind="date"]').innerText = inv.date || '';
+  $('[data-bind="dueDate"]').innerText = inv.dueDate || '';
 
   // Parties
   $('[data-bind="from"]').innerText = inv.from || '';
@@ -691,12 +687,12 @@ function renderInvoice(){
   // Notes
   $('#notesArea').value = inv.notes || '';
 
-  // Controls: templates and tax toggles
+  // Controls
   $('#tplSelect').value = inv.template || 'tpl-classic';
-  $('#gstToggle').checked = !!inv.gstEnabled;
-  $('#pstToggle').checked = !!inv.pstEnabled;
-  $('#gstRate').value = Number(inv.gstRate ?? 5);
-  $('#pstRate').value = Number(inv.pstRate ?? 7);
+  $('#accentColor').value = inv.accent || '#0071e3';
+  $('#currencySym').value = inv.currency || '$';
+  $('#taxRate').value = Number(inv.taxRate ?? 0);
+  $('#discount').value = inv.discount ?? '0';
 
   // Items
   const tb = $('#itemsBody');
@@ -708,33 +704,18 @@ function renderInvoice(){
 
 function renderTotals(inv){
   const cur = inv.currency || '$';
-  // Ensure amounts computed (guard against legacy data)
-  inv.items = inv.items.map(forceComputedAmount);
-
-  const sub = inv.items.reduce((s, it)=> s + (Number(it.amount)||0), 0);
-
-  const gst = inv.gstEnabled ? sub * (Number(inv.gstRate||0)/100) : 0;
-  const pst = inv.pstEnabled ? sub * (Number(inv.pstRate||0)/100) : 0;
-  const total = sub + gst + pst;
-
+  const sub = inv.items.reduce((s, it)=> s + (Number(it.amount) || (Number(it.hours||0) * Number(it.rate||0))), 0);
+  const tax = sub * (Number(inv.taxRate||0)/100);
+  const disc = parseDiscount(inv.discount, sub + tax);
+  const total = Math.max(0, sub + tax - disc);
   $('#subtotalVal').textContent = fmtMoney(sub, cur);
-
-  const gstLine = $('#gstLine'), pstLine = $('#pstLine');
-  gstLine.classList.toggle('hidden', !inv.gstEnabled);
-  pstLine.classList.toggle('hidden', !inv.pstEnabled);
-  $('#gstLbl').textContent = `GST (${Number(inv.gstRate||0).toFixed(2)}%)`;
-  $('#pstLbl').textContent = `PST (${Number(inv.pstRate||0).toFixed(2)}%)`;
-  $('#gstVal').textContent = fmtMoney(gst, cur);
-  $('#pstVal').textContent = fmtMoney(pst, cur);
-
+  $('#taxVal').textContent = fmtMoney(tax, cur);
+  $('#discVal').textContent = '-' + fmtMoney(disc, cur).replace(/^[-]/,'');
   $('#totalVal').textContent = fmtMoney(total, cur);
 }
 
 /* ---- Row rendering & editing ---- */
 function renderRow(it, idx){
-  const computed = (Number(it.hours)||0) * (Number(it.rate)||0);
-  it.amount = computed; // keep state consistent
-
   const tr = document.createElement('tr');
   tr.dataset.id = it.id;
   tr.innerHTML = `
@@ -742,7 +723,7 @@ function renderRow(it, idx){
     <td contenteditable="true" data-f="date">${escapeHtml(it.date||'')}</td>
     <td contenteditable="true" data-f="hours" class="cell-tight">${escapeHtml(toNumStr(it.hours))}</td>
     <td contenteditable="true" data-f="rate" class="cell-tight">${escapeHtml(toNumStr(it.rate))}</td>
-    <td class="cell-tight" data-f="amount-view">${escapeHtml(toNumStr(it.amount))}</td>
+    <td contenteditable="true" data-f="amount" class="cell-tight">${escapeHtml(toNumStr(it.amount))}</td>
     <td contenteditable="true" data-f="description">${escapeHtml(it.description||'')}</td>
     <td class="cell-actions">
       <button class="row-btn" title="Move up" data-act="up"><svg viewBox="0 0 24 24" fill="none"><path d="M7 14l5-5 5 5" stroke-width="2" stroke-linecap="round"/></svg></button>
@@ -762,23 +743,27 @@ function onCellEdit(e){
   const field = td.dataset.f;
   const tr = td.closest('tr');
   const id = tr.dataset.id;
-
   updateInvoice(inv => {
     const it = inv.items.find(x => x.id === id);
     if (!it) return;
     const v = td.innerText.trim();
-
-    if (field === 'hours' || field === 'rate'){
+    if (['hours','rate','amount'].includes(field)){
       it[field] = v === '' ? '' : Number(v);
-      it.amount = (Number(it.hours)||0) * (Number(it.rate)||0);
-      const amtCell = tr.querySelector('[data-f="amount-view"]');
-      if (amtCell) amtCell.textContent = toNumStr(it.amount);
-    } else if (field !== 'amount-view'){
+      // If amount empty, compute from hours*rate; if amount edited, keep it.
+      if (field==='hours' || field==='rate'){
+        if (it.amount === '' || it.amount === null || isNaN(Number(it.amount))){
+          it.amount = (Number(it.hours)||0) * (Number(it.rate)||0);
+          // reflect change in cell if empty
+          const amtCell = tr.querySelector('[data-f="amount"]');
+          if (amtCell && (amtCell.innerText.trim()==='' || isNaN(Number(amtCell.innerText.trim())))){
+            amtCell.innerText = toNumStr(it.amount);
+          }
+        }
+      }
+    } else {
       it[field] = v;
     }
   });
-
-  // after updateInvoice, totals re-rendered via renderTotals(inv) inside updateInvoice
 }
 
 function onRowAction(e){
@@ -802,19 +787,15 @@ $('#qaAdd').addEventListener('click', ()=>{
   const date = $('#qaDate').value.trim();
   const hours = parseFloat($('#qaHours').value);
   const rate = parseFloat($('#qaRate').value);
+  const amountField = $('#qaAmount').value.trim();
   const desc = $('#qaDesc').value.trim();
-
+  const amount = amountField ? Number(amountField) : (isFinite(hours)&&isFinite(rate) ? hours*rate : 0);
   if (!job && !desc){ alert('Enter at least a Job name or Description.'); return; }
-
-  const safeHours = isFinite(hours) ? hours : 0;
-  const safeRate = isFinite(rate) ? rate : 0;
-
   updateInvoice(inv => {
-    inv.items.push(forceComputedAmount({ id: uid(), job, date, hours: safeHours, rate: safeRate, description: desc }));
+    inv.items.push({ id: uid(), job, date, hours: isFinite(hours)?hours:'', rate: isFinite(rate)?rate:'', amount: isFinite(amount)?amount:'', description: desc });
   });
-
   // clear
-  $('#qaJob').value=''; $('#qaDate').value=''; $('#qaHours').value=''; $('#qaRate').value=''; $('#qaDesc').value='';
+  $('#qaJob').value=''; $('#qaDate').value=''; $('#qaHours').value=''; $('#qaRate').value=''; $('#qaAmount').value=''; $('#qaDesc').value='';
   renderInvoice();
 });
 
@@ -837,26 +818,24 @@ $('#tplSelect').addEventListener('change', ()=>{
   $('#invoicePaper').className = val;
   updateInvoice(inv => { inv.template = val; });
 });
-
-// GST/PST toggles + rates
-$('#gstToggle').addEventListener('change', ()=>{
-  const enabled = $('#gstToggle').checked;
-  updateInvoice(inv => { inv.gstEnabled = enabled; });
+$('#accentColor').addEventListener('input', ()=>{
+  const val = $('#accentColor').value;
+  $('#invoicePaper').style.setProperty('--tpl-accent', val);
+  updateInvoice(inv => { inv.accent = val; });
 });
-$('#pstToggle').addEventListener('change', ()=>{
-  const enabled = $('#pstToggle').checked;
-  updateInvoice(inv => { inv.pstEnabled = enabled; });
+$('#currencySym').addEventListener('input', ()=>{
+  const val = $('#currencySym').value.trim().toUpperCase();
+  updateInvoice(inv => { inv.currency = val || '$'; });
 });
-$('#gstRate').addEventListener('input', ()=>{
-  const rate = Number($('#gstRate').value)||0;
-  updateInvoice(inv => { inv.gstRate = rate; });
+$('#taxRate').addEventListener('input', ()=>{
+  updateInvoice(inv => { inv.taxRate = Number($('#taxRate').value) || 0; });
 });
-$('#pstRate').addEventListener('input', ()=>{
-  const rate = Number($('#pstRate').value)||0;
-  updateInvoice(inv => { inv.pstRate = rate; });
+$('#discount').addEventListener('input', ()=>{
+  updateInvoice(inv => { inv.discount = $('#discount').value; });
 });
 
 $('#pdfBtn').addEventListener('click', ()=>{ window.print(); });
+$('#pngBtn').addEventListener('click', exportPNG);
 $('#deleteBtn').addEventListener('click', ()=>{
   const inv = getCurrent(); if (!inv) return;
   if (confirm('Delete this invoice?')) deleteInvoice(inv.id);
@@ -886,12 +865,6 @@ $('#importBtn').addEventListener('click', ()=>{
       const obj = JSON.parse(text);
       obj.id = uid(); obj.createdAt = nowISO(); obj.updatedAt = nowISO();
       if (!obj.items) obj.items = [];
-      // Default the new tax fields if missing
-      obj.gstEnabled = obj.gstEnabled ?? false;
-      obj.gstRate = Number(obj.gstRate ?? 5);
-      obj.pstEnabled = obj.pstEnabled ?? false;
-      obj.pstRate = Number(obj.pstRate ?? 7);
-      obj.items = obj.items.map(forceComputedAmount);
       state.invoices.unshift(obj);
       state.selectedId = obj.id;
       save(); renderSidebar(); renderInvoice();
@@ -900,11 +873,74 @@ $('#importBtn').addEventListener('click', ()=>{
   inp.click();
 });
 
+/* ---- PNG Export via SVG foreignObject ---- */
+function exportPNG(){
+  const paper = $('#invoicePaper');
+  const css = document.getElementById('invoice-css').textContent + '\n' + minimalInlinePaperColors(paper);
+  const clone = paper.cloneNode(true);
+  // Remove contenteditable for capture to avoid caret artifacts
+  clone.querySelectorAll('[contenteditable]').forEach(n=> n.removeAttribute('contenteditable'));
+
+  const wrap = document.createElement('div');
+  wrap.appendChild(clone);
+  const html = wrap.innerHTML
+    .replaceAll('src="logo1.png"', 'src="'+location.origin+location.pathname.replace(/[^/]+$/,'')+'logo1.png"')
+    .replace(/<script[\s\S]*?<\/script>/gi,''); // safety
+
+  const bbox = paper.getBoundingClientRect();
+  const scale = 2; // retina
+  const svg = `
+<svg xmlns="http://www.w3.org/2000/svg" width="${Math.ceil(bbox.width*scale)}" height="${Math.ceil(bbox.height*scale)}">
+  <foreignObject width="100%" height="100%">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="width:${bbox.width}px;height:${bbox.height}px; transform: scale(${scale}); transform-origin: top left; background:white;">
+      <style>${css}</style>
+      ${html}
+    </div>
+  </foreignObject>
+</svg>`.trim();
+
+  const svgBlob = new Blob([svg], {type:'image/svg+xml'});
+  const url = URL.createObjectURL(svgBlob);
+  const img = new Image();
+  img.onload = ()=>{
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.ceil(bbox.width*scale);
+    canvas.height = Math.ceil(bbox.height*scale);
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0,0,canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0);
+    canvas.toBlob(blob=>{
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      const inv = getCurrent();
+      a.download = `invoice-${(inv?.number||'')}.png`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+      URL.revokeObjectURL(url);
+    }, 'image/png', 0.96);
+  };
+  img.onerror = ()=> { URL.revokeObjectURL(url); alert('PNG export failed. Try Print→PDF if needed.'); };
+  img.src = url;
+}
+
+function minimalInlinePaperColors(paper){
+  // mirror key colors for export reliability across dark mode/templates
+  const styles = getComputedStyle(paper);
+  const text = styles.color || '#111';
+  const bg = '#ffffff';
+  return `
+#invoicePaper{ background:${bg}; color:${text}; }
+#invoicePaper .card{ background:#fff; }
+#invoicePaper .row-btn svg{ stroke:${text}; }`;
+}
+
 /* ---- Helpers ---- */
 function oneLine(s){ return (s||'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean)[0] || ''; }
 function escapeHtml(s=''){ return s.replace(/[&<>"]/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' })[c]); }
 
 function nextNumberGuess(){
+  // simple guess: max existing + 1 preserving length
   const nums = state.invoices.map(x => parseInt(x.number,10)).filter(n=>!isNaN(n));
   const max = nums.length ? Math.max(...nums) : 0;
   const len = (state.invoices[0]?.number || '0001').length;
@@ -931,13 +967,12 @@ if (!state.invoices.length){
     number: '0001',
     title: 'INVOICE',
     items: [
-      { id: uid(), job: 'Design & Layout', date: new Date().toISOString().slice(0,10), hours: 5, rate: 120, description: 'Homepage hero + product cards' }
+      { id: uid(), job: 'Design & Layout', date: new Date().toISOString().slice(0,10), hours: 5, rate: 120, amount: 600, description: 'Homepage hero + product cards' }
     ],
-    notes: 'Thank you for your business!',
-    gstEnabled: false, gstRate: 5,
-    pstEnabled: false, pstRate: 7
+    notes: 'Thank you for your business!'
   });
 } else {
+  // ensure UI renders list & current
   renderSidebar();
   if (!state.selectedId) state.selectedId = state.invoices[0].id;
   renderInvoice();
@@ -948,6 +983,7 @@ bindContenteditable();
 document.addEventListener('click', ()=>{
   $$('.inv-row').forEach(r => r.classList.toggle('active', r.dataset.id === state.selectedId));
 });
+
 </script>
 </body>
 </html>
