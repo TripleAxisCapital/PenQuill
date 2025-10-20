@@ -303,7 +303,7 @@ function createInvoice(opts={}){
   const inv = {
     id,
     title: opts.title || 'INVOICE', number: opts.number || '0001', date: opts.date || (new Date().toISOString().slice(0,10)),
-    from: opts.from || 'Lola’s Pen & Quill\nhello@lola.example\n123 Apple Way, Cupertino, CA',
+    from: opts.from || 'Lola',
     to: opts.to || 'Client Name\nclient@company.com\n1 Infinite Loop, Cupertino, CA',
     notes: opts.notes || '', currency: opts.currency || '$',
     gstEnabled: opts.gstEnabled ?? false, gstRate: Number(opts.gstRate ?? 5),
