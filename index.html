@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Lola’s Pen & Quill</title>
-<meta name="description" content="Minimal Apple‑style invoices. Files list on the left, the same inline‑editable table, a + button to add rows, and Export to PDF/PNG." />
+<meta name="description" content="Apple‑style invoices. Collapsible sidebar, top export button, portrait support, and pristine exports (no UI controls)." />
 <meta name="color-scheme" content="light dark" />
 
 <!-- html2canvas for PNG export (tiny runtime, loaded on demand) -->
@@ -12,14 +12,14 @@
 
 <style id="base-css">
 /* =========================
-   Minimal Lola — Files • Table • + • Export
+   Lola — Polished Production UI
    ========================= */
 *{ box-sizing: border-box; }
 html,body{ height:100%; margin:0; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
 :root{
   --bg:#f5f5f7; --panel:rgba(255,255,255,.7); --panel-stroke:rgba(0,0,0,.08);
   --text:#0b0b0b; --muted:#6b7280; --accent:#0071e3; --shadow:0 10px 30px rgba(0,0,0,.10);
-  --radius:16px; --screen-paper-w:816px; --sidebar-w:300px; --tap:44px;
+  --radius:16px; --screen-paper-w:816px; --sidebar-w:300px; --sidebar-w-current:300px; --tap:44px;
 }
 @media(prefers-color-scheme:dark){ :root{ --bg:#0b0b0b; --panel:rgba(22,22,24,.6); --panel-stroke:rgba(255,255,255,.08); --text:#f5f5f7; --muted:#a1a1aa; --shadow:0 10px 30px rgba(0,0,0,.5);} }
 body{
@@ -29,19 +29,21 @@ body{
   color:var(--text);
 }
 
-/* App layout */
-.app{ display:grid; grid-template-columns: var(--sidebar-w) 1fr; min-height:100vh; }
-@media(max-width:960px){ .app{ grid-template-columns: 1fr; } .sidebar{ position:sticky; top:0; z-index:5; } }
-
-/* Sidebar */
-.sidebar{ border-right:1px solid var(--panel-stroke); background: linear-gradient(180deg, var(--panel), transparent); backdrop-filter:saturate(180%) blur(14px); }
-.side-head{ display:flex; align-items:center; gap:10px; padding:12px; border-bottom:1px solid var(--panel-stroke); }
-.brand{ font-weight:700; letter-spacing:-.02em; }
-.side-actions{ margin-left:auto; display:flex; gap:8px; }
-.icon-btn{ background:transparent; border:1px solid var(--panel-stroke); border-radius:12px; padding:8px; min-width:var(--tap); min-height:var(--tap); display:inline-grid; place-items:center; cursor:pointer; }
+/* ===== App layout with topbar ===== */
+.app{ display:grid; grid-template-rows: auto 1fr; grid-template-columns: var(--sidebar-w-current) 1fr; grid-template-areas: "topbar topbar" "sidebar main"; min-height:100vh; }
+.topbar{ grid-area: topbar; position:sticky; top:0; z-index:40; display:flex; align-items:center; gap:10px; padding:12px clamp(12px, 2vw, 20px); border-bottom:1px solid var(--panel-stroke); background: linear-gradient(180deg, var(--panel), transparent); backdrop-filter:saturate(180%) blur(14px); }
+.brand{ font-weight:800; letter-spacing:-.02em; }
+.topbar .spacer{ flex:1 1 auto; }
+.icon-btn{ background:transparent; border:1px solid var(--panel-stroke); border-radius:12px; padding:8px; min-width:var(--tap); min-height:var(--tap); display:inline-grid; place-items:center; cursor:pointer; transition:background .18s ease; }
 .icon-btn:hover{ background:rgba(0,0,0,.04);} @media(prefers-color-scheme:dark){ .icon-btn:hover{ background:rgba(255,255,255,.06);} }
 .icon-btn svg{ width:18px; height:18px; stroke:var(--text); }
-.side-list{ padding:8px; height:calc(100vh - 62px); overflow:auto; }
+.primary{ background:linear-gradient(180deg,#0a84ff,#0066cc); color:#fff; border:0; box-shadow:var(--shadow); }
+.primary:hover{ filter:brightness(.98); }
+
+/* Sidebar */
+.sidebar{ grid-area: sidebar; border-right:1px solid var(--panel-stroke); background: linear-gradient(180deg, var(--panel), transparent); backdrop-filter:saturate(180%) blur(14px); overflow:auto; }
+.side-head{ display:flex; align-items:center; gap:10px; padding:12px; border-bottom:1px solid var(--panel-stroke); }
+.side-list{ padding:8px; height:calc(100% - 62px); overflow:auto; }
 .inv-row{ display:grid; grid-template-columns:1fr auto; gap:8px; align-items:center; padding:10px; border-radius:12px; cursor:pointer; }
 .inv-row:hover{ background:rgba(0,0,0,.045); }
 .inv-row.active{ outline:2px solid var(--accent); background:rgba(0,113,227,.08); }
@@ -49,8 +51,13 @@ body{
 .inv-title{ font-weight:600; font-size:14px; letter-spacing:-.01em; }
 .inv-sub{ color:var(--muted); font-size:12px; }
 
+/* Sidebar collapse (desktop + mobile) */
+@media(max-width:960px){ :root{ --sidebar-w-current: 0px; } .sidebar{ position:fixed; inset:56px 0 auto 0; width:min(92vw, 360px); max-width:92vw; border-right:1px solid var(--panel-stroke); transform:translateX(-102%); transition:transform .22s ease; z-index:45; box-shadow:var(--shadow); }
+  .sidebar.open{ transform:translateX(0); }
+}
+
 /* Main */
-.main{ padding:18px; display:grid; place-items:start center; gap:14px; }
+.main{ grid-area: main; padding:18px clamp(12px, 3vw, 28px); display:grid; place-items:start center; gap:14px; }
 .paper-wrap{ display:grid; place-items:start center; width:100%; }
 #invoicePaper{ width:min(var(--screen-paper-w), 100%); background:white; color:#111; border-radius:18px; box-shadow:var(--shadow); border:1px solid rgba(0,0,0,.06); overflow:hidden; transform-origin:top center; --tpl-accent: var(--accent); }
 .paper-inner{ padding:28px; display:grid; gap:16px; }
@@ -59,7 +66,7 @@ body{
 [contenteditable="true"]{ border-radius:8px; transition: box-shadow 160ms ease, background 160ms ease; }
 [contenteditable="true"]:focus{ outline:none; background:rgba(0,113,227,.06); box-shadow:0 0 0 2px rgba(0,113,227,.35); }
 
-/* Header / Parties (kept) */
+/* Header / Parties */
 .inv-header{ display:grid; grid-template-columns:1fr auto; gap:14px; align-items:start; }
 .inv-logo{ width:110px; height:110px; object-fit:contain; }
 .inv-ids{ text-align:right; display:grid; gap:6px; }
@@ -69,7 +76,7 @@ body{
 .card{ border:1px solid rgba(0,0,0,.08); border-radius:12px; padding:12px; background:linear-gradient(180deg, #fff, #fafafa); }
 .card h4{ margin:0 0 6px 0; font-size:13px; letter-spacing:.04em; color:#6b7280; text-transform:uppercase; }
 
-/* Items table (UNCHANGED) */
+/* Items table */
 .items table{ width:100%; border-collapse:collapse; }
 .items thead th{ font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:#6b7280; text-align:left; border-bottom:1px solid rgba(0,0,0,.09); padding-bottom:6px; }
 .items tbody td{ padding:8px 6px; border-bottom:1px solid rgba(0,0,0,.06); vertical-align:top; }
@@ -78,33 +85,45 @@ body{
 .row-btn{ border:0; background:transparent; cursor:pointer; padding:6px; border-radius:10px; min-width:var(--tap); min-height:var(--tap); }
 .row-btn:hover{ background:rgba(0,0,0,.06);} .row-btn svg{ width:16px; height:16px; stroke:#111; }
 
-/* Totals (kept) */
+/* Totals */
 .totals{ margin-left:auto; width:min(420px,100%); display:grid; gap:6px; }
 .tline{ display:flex; justify-content:space-between; align-items:baseline; }
 .tline .lbl{ color:#6b7280; } .tline .val{ font-variant-numeric: tabular-nums; }
 .tline.total{ border-top:1px dashed rgba(0,0,0,.2); padding-top:8px; font-weight:800; font-size:20px; }
 
-/* Templates (kept minimal) */
+/* Templates */
 #invoicePaper.tpl-classic .card{ background:linear-gradient(180deg, #fff, #fefefe); }
 
 /* Notes */
 .notes textarea{ width:100%; min-height:120px; border:1px solid rgba(0,0,0,.08); border-radius:12px; padding:10px; resize:vertical; }
 
-/* Print */
-@media print{
-  body{ background:white; } .sidebar, .fab, .export-menu{ display:none !important; }
-  #invoicePaper{ width:8.5in; min-height:11in; border:0; border-radius:0; box-shadow:none; color:black; background:white !important; }
-  .paper-inner{ padding:.5in; }
-}
-
-/* Floating + and Export menu */
-.fab{ position:fixed; right:22px; bottom:22px; z-index:20; border:0; border-radius:999px; width:56px; height:56px; display:grid; place-items:center; font-size:28px; line-height:0; color:#fff; cursor:pointer; box-shadow:0 10px 30px rgba(0,0,0,.2); background:linear-gradient(180deg,#0a84ff,#0066cc); }
-.fab:active{ transform:translateY(1px); }
+/* Dropdown */
 .dropdown{ position:relative; }
-.menu{ position:absolute; right:0; top:calc(100% + 6px); min-width:170px; background:var(--panel); border:1px solid var(--panel-stroke); border-radius:12px; box-shadow:var(--shadow); backdrop-filter:saturate(180%) blur(14px); padding:6px; display:none; }
+.menu{ position:absolute; right:0; top:calc(100% + 6px); min-width:190px; background:var(--panel); border:1px solid var(--panel-stroke); border-radius:12px; box-shadow:var(--shadow); backdrop-filter:saturate(180%) blur(14px); padding:6px; display:none; }
 .menu button{ width:100%; text-align:left; background:transparent; border:0; padding:10px 12px; border-radius:10px; cursor:pointer; font-size:14px; }
 .menu button:hover{ background:rgba(0,0,0,.06); }
 .dropdown.open .menu{ display:block; }
+
+/* Floating + (kept) */
+.fab{ position:fixed; right:22px; bottom:22px; z-index:20; border:0; border-radius:999px; width:56px; height:56px; display:grid; place-items:center; font-size:28px; line-height:0; color:#fff; cursor:pointer; box-shadow:var(--shadow); background:linear-gradient(180deg,#0a84ff,#0066cc); }
+.fab:active{ transform:translateY(1px); }
+
+/* Print & export-only polishing */
+@page { size: Letter portrait; margin: 0.5in; }
+@media print{
+  html, body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body{ background:white; }
+  .sidebar, .topbar, .fab, .export-menu, .dropdown, .icon-btn{ display:none !important; }
+  #invoicePaper{ width:8.5in; min-height:11in; border:0; border-radius:0; box-shadow:none; color:black; background:white !important; }
+  .paper-inner{ padding:.5in; }
+  /* Hide UI-only column/buttons inside the invoice */
+  #invoicePaper .cell-actions, #invoicePaper th.cell-actions, #invoicePaper .row-btn{ display:none !important; }
+  #invoicePaper [contenteditable]{ outline:none !important; background:transparent !important; }
+}
+/* PNG export state (mimic print rules for UI-less capture) */
+#invoicePaper.for-export{ box-shadow:none; border:1px solid #eee; }
+#invoicePaper.for-export .cell-actions, #invoicePaper.for-export th.cell-actions, #invoicePaper.for-export .row-btn{ display:none !important; }
+#invoicePaper.for-export [contenteditable]{ background:transparent !important; box-shadow:none !important; }
 
 .hidden{ display:none !important; }
 </style>
@@ -125,6 +144,27 @@ body{
 
 <!-- App -->
 <div id="app" class="app">
+  <!-- Topbar (Export button here) -->
+  <header class="topbar" aria-label="App toolbar">
+    <button class="icon-btn" id="toggleSidebarBtn" title="Toggle sidebar" aria-controls="sidebar" aria-expanded="false">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h16M4 18h16" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+    <div class="brand">Lola’s Pen & Quill</div>
+    <div class="spacer"></div>
+    <button class="icon-btn" id="newInvoiceBtnTop" title="New invoice" aria-label="New invoice">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+    <div class="dropdown" id="exportDropdownTop">
+      <button class="icon-btn primary" id="exportBtnTop" title="Export" aria-haspopup="menu" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 21V9m0 0l4 4m-4-4L8 13M5 3h14" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+      <div class="menu export-menu" id="exportMenuTop" role="menu">
+        <button id="exportPDF" role="menuitem">Export as PDF (Print)</button>
+        <button id="exportPNG" role="menuitem">Export as PNG</button>
+      </div>
+    </div>
+  </header>
+
   <!-- Sidebar (Files) -->
   <aside class="sidebar" id="sidebar" aria-label="Files">
     <div class="side-head">
@@ -133,15 +173,6 @@ body{
         <button class="icon-btn" id="newInvoiceBtn" title="New file" aria-label="New file">
           <svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke-width="2" stroke-linecap="round"/></svg>
         </button>
-        <div class="dropdown" id="exportDropdown">
-          <button class="icon-btn" id="exportBtn" title="Export" aria-haspopup="menu" aria-expanded="false">
-            <svg viewBox="0 0 24 24" fill="none"><path d="M12 21V9m0 0l4 4m-4-4L8 13M5 3h14" stroke-width="2" stroke-linecap="round"/></svg>
-          </button>
-          <div class="menu export-menu" id="exportMenu" role="menu">
-            <button id="exportPDF" role="menuitem">Export as PDF</button>
-            <button id="exportPNG" role="menuitem">Export as PNG</button>
-          </div>
-        </div>
       </div>
     </div>
     <div id="invoiceList" class="side-list" role="listbox" aria-label="File list"></div>
@@ -152,7 +183,7 @@ body{
     <div class="paper-wrap">
       <section id="invoicePaper" class="tpl-classic" aria-label="Invoice">
         <div class="paper-inner">
-          <!-- Header (kept) -->
+          <!-- Header -->
           <div class="inv-header">
             <div>
               <img src="logo2.png" alt="Logo" class="inv-logo" onerror="this.style.opacity=0.15"/>
@@ -168,7 +199,7 @@ body{
             </div>
           </div>
 
-          <!-- Parties (kept) -->
+          <!-- Parties -->
           <div class="parties">
             <div class="card">
               <h4 class="accent">From</h4>
@@ -187,7 +218,7 @@ body{
             </div>
           </div>
 
-          <!-- Items (UNCHANGED table) -->
+          <!-- Items -->
           <div class="items">
             <table>
               <thead>
@@ -205,7 +236,7 @@ body{
             </table>
           </div>
 
-          <!-- Totals (kept; tax toggles removed; defaults OFF) -->
+          <!-- Totals -->
           <div class="totals">
             <div class="tline"><div class="lbl">Subtotal</div><div class="val" id="subtotalVal">$0.00</div></div>
             <div class="tline hidden" id="gstLine"><div class="lbl" id="gstLbl">GST</div><div class="val" id="gstVal">$0.00</div></div>
@@ -213,7 +244,7 @@ body{
             <div class="tline total"><div class="lbl accent">Total</div><div class="val" id="totalVal">$0.00</div></div>
           </div>
 
-          <!-- Notes (kept) -->
+          <!-- Notes -->
           <div class="notes">
             <textarea id="notesArea" placeholder="Notes / Terms…"></textarea>
           </div>
@@ -228,7 +259,7 @@ body{
 
 <script>
 /* ==============================
-   Minimal Lola Logic — Files • Table • + • Export
+   Lola Logic — Files • Table • + • Export (polished)
    ============================== */
 const $ = (sel, el=document) => el.querySelector(sel);
 const $$ = (sel, el=document) => Array.from(el.querySelectorAll(sel));
@@ -236,13 +267,14 @@ const $$ = (sel, el=document) => Array.from(el.querySelectorAll(sel));
 const STORAGE_KEY = 'lpq_invoices_v2';
 const STORAGE_SEL = 'lpq_selected_id_v2';
 
-const state = { invoices: [], selectedId: null };
+const state = { invoices: [], selectedId: null, sidebarOpen:false };
 function uid(){ return 'inv_' + Math.random().toString(36).slice(2) + Date.now().toString(36); }
 function nowISO(){ return new Date().toISOString(); }
 function fmtMoney(n, sym='$'){ const v = isFinite(n) ? Number(n) : 0; return (sym||'$') + v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
 function oneLine(s){ return (s||'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean)[0] || ''; }
 function escapeHtml(s=''){ return s.replace(/[&<>"]/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' })[c]); }
 function toNumStr(v){ if (v===undefined||v===null||v==='') return ''; const n=Number(v); return isFinite(n) ? String(n) : ''; }
+function money(amount){ const inv=getCurrent(); return fmtMoney(Number(amount)||0, inv?.currency||'$'); }
 
 function load(){
   try{
@@ -258,6 +290,8 @@ function load(){
     } else {
       renderSidebar(); if (!state.selectedId) state.selectedId = state.invoices[0].id; renderInvoice();
     }
+    // Auto-collapse sidebar on small screens
+    if (window.matchMedia('(max-width: 960px)').matches) closeSidebar();
   }catch(e){ console.warn('Load failed', e); }
 }
 function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state.invoices)); if (state.selectedId) localStorage.setItem(STORAGE_SEL, state.selectedId); }
@@ -287,8 +321,12 @@ function renderSidebar(){
   const list = $('#invoiceList'); list.innerHTML='';
   state.invoices.forEach(inv=>{
     const row = document.createElement('div'); row.className='inv-row' + (inv.id===state.selectedId ? ' active':''); row.dataset.id = inv.id; row.setAttribute('role','option');
-    row.innerHTML = `<div class="inv-meta">\n      <div class="inv-title">${escapeHtml(inv.title||'INVOICE')} — ${escapeHtml(inv.number||'')}</div>\n      <div class="inv-sub">${escapeHtml(oneLine(inv.to||''))}</div>\n      <div class="inv-sub">Updated: ${new Date(inv.updatedAt).toLocaleString()}</div>\n    </div>`;
-    row.addEventListener('click',()=>{ state.selectedId = inv.id; save(); renderSidebar(); renderInvoice(); });
+    row.innerHTML = `<div class="inv-meta">
+      <div class="inv-title">${escapeHtml(inv.title||'INVOICE')} — ${escapeHtml(inv.number||'')}</div>
+      <div class="inv-sub">${escapeHtml(oneLine(inv.to||''))}</div>
+      <div class="inv-sub">Updated: ${new Date(inv.updatedAt).toLocaleString()}</div>
+    </div>`;
+    row.addEventListener('click',()=>{ state.selectedId = inv.id; save(); renderSidebar(); renderInvoice(); if (window.matchMedia('(max-width: 960px)').matches) closeSidebar(); });
     list.appendChild(row);
   });
 }
@@ -321,16 +359,27 @@ function renderTotals(inv){
   $('#totalVal').textContent = fmtMoney(total, cur);
 }
 
-/* Row (UNCHANGED table structure) */
+/* Row */
 function renderRow(it){
-  const computed = (Number(it.hours)||0) * (Number(it.rate)||0); it.amount = computed;
+  const inv = getCurrent();
   const tr = document.createElement('tr'); tr.dataset.id = it.id;
-  tr.innerHTML = `\n    <td contenteditable="true" data-f="job">${escapeHtml(it.job||'')}</td>\n    <td contenteditable="true" data-f="date">${escapeHtml(it.date||'')}</td>\n    <td contenteditable="true" data-f="hours" class="cell-tight">${escapeHtml(toNumStr(it.hours))}</td>\n    <td contenteditable="true" data-f="rate" class="cell-tight">${escapeHtml(toNumStr(it.rate))}</td>\n    <td class="cell-tight" data-f="amount-view">${escapeHtml(toNumStr(it.amount))}</td>\n    <td contenteditable="true" data-f="description">${escapeHtml(it.description||'')}</td>\n    <td class="cell-actions">\n      <button class="row-btn" title="Move up" data-act="up"><svg viewBox="0 0 24 24" fill="none"><path d="M7 14l5-5 5 5" stroke-width="2" stroke-linecap="round"/></svg></button>\n      <button class="row-btn" title="Move down" data-act="down"><svg viewBox="0 0 24 24" fill="none"><path d="M7 10l5 5 5-5" stroke-width="2" stroke-linecap="round"/></svg></button>\n      <button class="row-btn" title="Delete" data-act="del"><svg viewBox="0 0 24 24" fill="none"><path d="M6 7h12M9 7V5h6v2M9 10v7M12 10v7M15 10v7" stroke-width="2" stroke-linecap="round"/></svg></button>\n    </td>`;
+  tr.innerHTML = `
+    <td contenteditable="true" data-f="job">${escapeHtml(it.job||'')}</td>
+    <td contenteditable="true" data-f="date">${escapeHtml(it.date||'')}</td>
+    <td contenteditable="true" data-f="hours" class="cell-tight">${escapeHtml(toNumStr(it.hours))}</td>
+    <td contenteditable="true" data-f="rate" class="cell-tight">${escapeHtml(toNumStr(it.rate))}</td>
+    <td class="cell-tight" data-f="amount-view">${escapeHtml(money((Number(it.hours)||0)*(Number(it.rate)||0)))}</td>
+    <td contenteditable="true" data-f="description">${escapeHtml(it.description||'')}</td>
+    <td class="cell-actions">
+      <button class="row-btn" title="Move up" data-act="up"><svg viewBox="0 0 24 24" fill="none"><path d="M7 14l5-5 5 5" stroke-width="2" stroke-linecap="round"/></svg></button>
+      <button class="row-btn" title="Move down" data-act="down"><svg viewBox="0 0 24 24" fill="none"><path d="M7 10l5 5 5-5" stroke-width="2" stroke-linecap="round"/></svg></button>
+      <button class="row-btn" title="Delete" data-act="del"><svg viewBox="0 0 24 24" fill="none"><path d="M6 7h12M9 7V5h6v2M9 10v7M12 10v7M15 10v7" stroke-width="2" stroke-linecap="round"/></svg></button>
+    </td>`;
   tr.addEventListener('input', onCellEdit);
   tr.addEventListener('click', onRowAction);
   return tr;
 }
-function onCellEdit(e){ const td = e.target.closest('[data-f]'); if(!td) return; const field = td.dataset.f; const tr = td.closest('tr'); const id = tr.dataset.id; updateInvoice(inv=>{ const it = inv.items.find(x=>x.id===id); if(!it) return; const v = td.innerText.trim(); if(field==='hours'||field==='rate'){ it[field] = v==='' ? '' : Number(v); it.amount = (Number(it.hours)||0) * (Number(it.rate)||0); const amtCell = tr.querySelector('[data-f="amount-view"]'); if(amtCell) amtCell.textContent = toNumStr(it.amount); } else if(field!=='amount-view'){ it[field] = v; } }); }
+function onCellEdit(e){ const td = e.target.closest('[data-f]'); if(!td) return; const field = td.dataset.f; const tr = td.closest('tr'); const id = tr.dataset.id; updateInvoice(inv=>{ const it = inv.items.find(x=>x.id===id); if(!it) return; const v = td.innerText.trim(); if(field==='hours'||field==='rate'){ it[field] = v==='' ? '' : Number(v); it.amount = (Number(it.hours)||0) * (Number(it.rate)||0); const amtCell = tr.querySelector('[data-f="amount-view"]'); if(amtCell) amtCell.textContent = money(it.amount); } else if(field!=='amount-view'){ it[field] = v; } }); }
 function onRowAction(e){ const btn = e.target.closest('[data-act]'); if(!btn) return; const act=btn.dataset.act; const tr = btn.closest('tr'); const id = tr.dataset.id; updateInvoice(inv=>{ const idx = inv.items.findIndex(x=>x.id===id); if(idx<0) return; if(act==='del'){ inv.items.splice(idx,1); tr.remove(); } if(act==='up'&&idx>0){ const tmp=inv.items[idx-1]; inv.items[idx-1]=inv.items[idx]; inv.items[idx]=tmp; } if(act==='down'&&idx<inv.items.length-1){ const tmp=inv.items[idx+1]; inv.items[idx+1]=inv.items[idx]; inv.items[idx]=tmp; } }); renderInvoice(); }
 
 /* Contenteditable binds (header/parties/notes) */
@@ -339,8 +388,9 @@ function bindContenteditable(){
   $('#notesArea').addEventListener('input', ()=>{ updateInvoice(inv=>{ inv.notes = $('#notesArea').value; }); });
 }
 
-/* UI: New file, + row, Export */
+/* New invoice & add row */
 $('#newInvoiceBtn').addEventListener('click', ()=>{ createInvoice({ number: nextNumberGuess(), title:'INVOICE' }); });
+$('#newInvoiceBtnTop').addEventListener('click', ()=>{ createInvoice({ number: nextNumberGuess(), title:'INVOICE' }); });
 
 $('#addRowFab').addEventListener('click', ()=>{
   updateInvoice(inv=>{ inv.items.push(forceComputedAmount({ id:uid(), job:'', date:new Date().toISOString().slice(0,10), hours:0, rate:0, description:'' })); });
@@ -349,26 +399,48 @@ $('#addRowFab').addEventListener('click', ()=>{
 
 function nextNumberGuess(){ const nums = state.invoices.map(x=>parseInt(x.number,10)).filter(n=>!isNaN(n)); const max = nums.length? Math.max(...nums):0; const len = (state.invoices[0]?.number || '0001').length; return String(max+1).padStart(len,'0'); }
 
-// Export menu toggle
-const exportDropdown = $('#exportDropdown'); const exportBtn = $('#exportBtn'); const exportMenu = $('#exportMenu');
-exportBtn.addEventListener('click', (e)=>{ e.stopPropagation(); exportDropdown.classList.toggle('open'); exportBtn.setAttribute('aria-expanded', exportDropdown.classList.contains('open')); });
-document.addEventListener('click', ()=>{ exportDropdown.classList.remove('open'); exportBtn.setAttribute('aria-expanded','false'); });
+/* Topbar Export menu */
+const exportDropdownTop = $('#exportDropdownTop'); const exportBtnTop = $('#exportBtnTop'); const exportMenuTop = $('#exportMenuTop');
+exportBtnTop.addEventListener('click', (e)=>{ e.stopPropagation(); exportDropdownTop.classList.toggle('open'); exportBtnTop.setAttribute('aria-expanded', exportDropdownTop.classList.contains('open')); });
 
-// Export as PDF (print)
+/* Close any dropdown when clicking elsewhere */
+document.addEventListener('click', ()=>{ exportDropdownTop.classList.remove('open'); exportBtnTop.setAttribute('aria-expanded','false'); });
+
+/* Export as PDF (print) */
 $('#exportPDF').addEventListener('click', ()=>{ window.print(); });
 
-// Export as PNG (html2canvas)
+/* Export as PNG (html2canvas with UI hidden) */
+function nextFrame(){ return new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))); }
 $('#exportPNG').addEventListener('click', async ()=>{
   try{
     const node = document.getElementById('invoicePaper');
+    node.classList.add('for-export');
+    if (document.activeElement && node.contains(document.activeElement)) document.activeElement.blur();
+    await nextFrame();
     const canvas = await html2canvas(node, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
     const link = document.createElement('a');
     const inv = getCurrent();
     link.download = `invoice-${(inv?.number)||'export'}.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
+    node.classList.remove('for-export');
   }catch(err){ alert('PNG export failed. Try Print to PDF or a screenshot.'); console.error(err); }
 });
+
+/* Sidebar toggle */
+const sidebar = $('#sidebar');
+const toggleBtn = $('#toggleSidebarBtn');
+function openSidebar(){ state.sidebarOpen=true; toggleBtn.setAttribute('aria-expanded','true'); if (window.matchMedia('(max-width: 960px)').matches){ sidebar.classList.add('open'); } else { document.documentElement.style.setProperty('--sidebar-w-current', '300px'); } }
+function closeSidebar(){ state.sidebarOpen=false; toggleBtn.setAttribute('aria-expanded','false'); if (window.matchMedia('(max-width: 960px)').matches){ sidebar.classList.remove('open'); } else { document.documentElement.style.setProperty('--sidebar-w-current', '0px'); } }
+function toggleSidebar(){ state.sidebarOpen ? closeSidebar() : openSidebar(); }
+
+// Initialize sidebar state (desktop open, mobile closed)
+if (window.matchMedia('(max-width: 960px)').matches){ closeSidebar(); } else { document.documentElement.style.setProperty('--sidebar-w-current', '300px'); }
+
+toggleBtn.addEventListener('click', (e)=>{ e.stopPropagation(); toggleSidebar(); });
+window.addEventListener('resize', ()=>{ if (window.matchMedia('(max-width: 960px)').matches){ document.documentElement.style.setProperty('--sidebar-w-current', '0px'); if(state.sidebarOpen) sidebar.classList.add('open'); } else { sidebar.classList.remove('open'); document.documentElement.style.setProperty('--sidebar-w-current', state.sidebarOpen ? '300px':'0px'); } });
+
+document.addEventListener('click', (e)=>{ if (window.matchMedia('(max-width: 960px)').matches && state.sidebarOpen){ const inside = sidebar.contains(e.target) || toggleBtn.contains(e.target); if (!inside) closeSidebar(); } });
 
 /* Init */
 load();
